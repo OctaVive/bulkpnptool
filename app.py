@@ -105,13 +105,16 @@ def _parse_numbers(raw_numbers: str) -> List[ParsedNumber]:
             # For wildcard blocks, the exported number must remain exactly as entered.
             export_value = cleaned_line
         else:
-            # For non-wildcard numbers, export as 9 digits (no leading 0).
+            # For non-wildcard numbers, export without the leading 0.
             export_value = cleaned_line
             if lookup_national:
-                # lookup_national is expected to be in national format (leading 0),
-                # convert back to 9-digit by stripping the first 0.
                 digits = "".join(ch for ch in lookup_national if ch.isdigit())
-                if digits.startswith("0") and len(digits) >= 10:
+                if digits.startswith("050") and len(digits) == 9:
+                    # Special case for 050 region: keep the 50 prefix but drop the
+                    # leading 0 so that, for example, 050688200 → 50688200.
+                    export_value = digits[1:]
+                elif digits.startswith("0") and len(digits) >= 10:
+                    # Generic national format: strip leading 0 and keep next 9 digits.
                     export_value = digits[1:10]
                 elif len(digits) == 9:
                     export_value = digits
