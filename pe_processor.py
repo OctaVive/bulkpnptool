@@ -97,6 +97,20 @@ class PEProcessor:
         if pe is not None:
             return pe
 
+        # If the number does not start with 0, try interpreting it as a local
+        # number and prepend a 0 for prefix lookup (e.g. "475..." -> "0475...").
+        if not national_number.startswith("0") and len(national_number) >= 3:
+            candidate = "0" + national_number
+            if len(candidate) >= 4:
+                prefix4 = candidate[:4]
+                pe = self._prefix_to_pe.get(prefix4)
+                if pe is not None:
+                    return pe
+            prefix3 = candidate[:3]
+            pe = self._prefix_to_pe.get(prefix3)
+            if pe is not None:
+                return pe
+
         # Fallback: look at the first digits of the subscriber part
         # (local number without the leading '0' of the national format),
         # e.g. "455688211" -> "45" -> PE24, "71688200" -> "71" -> PE16.
