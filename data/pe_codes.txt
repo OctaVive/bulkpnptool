@@ -143,3 +143,5 @@
 045;24;Heerlen
 046;24;Sittard
 0527;25;Emmeloord
+088;00;geennetgebied
+085;00;geennetgebied
