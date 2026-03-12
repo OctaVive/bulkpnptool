@@ -121,10 +121,16 @@ def _parse_numbers(raw_numbers: str) -> List[ParsedNumber]:
                 export_value = cleaned_line
             else:
                 digits = "".join(ch for ch in lookup_national if ch.isdigit())
-                if digits.startswith("050") and len(digits) == 9:
-                    # Keep the 50 prefix but drop the leading 0, e.g.
+                if digits.startswith("050"):
+                    # Non-wildcard 050 numbers must be exported as 9 digits
+                    # without the leading 0, e.g. 0506882000 → 506882000 and
                     # 050688200 → 50688200.
-                    export_value = digits[1:]
+                    if len(digits) >= 10:
+                        export_value = digits[1:10]
+                    elif len(digits) == 9:
+                        export_value = digits[1:]
+                    else:
+                        export_value = digits
                 elif digits:
                     export_value = digits
         else:
