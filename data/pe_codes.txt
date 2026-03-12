@@ -1,0 +1,145 @@
+0594;01;Zuidhorn
+0595;01;Warffum
+0596;01;Appingedam
+0597;01;Winschoten
+0598;01;Hoogezand
+0599;01;Stadskanaal
+058;02;Leeuwarden
+0511;02;Veenwouden
+0512;02;Drachten
+0513;02;Heerenveen
+0514;02;Lemmer
+0515;02;Sneek
+0516;02;Oosterwolde
+0517;02;Franeker
+0518;02;St. Annaparochie
+0519;02;Dokkum
+0561;02;Wolvega
+0562;02;Terschelling
+050;03;Roden
+0521;03;Steenwijk
+0522;03;Meppel
+0524;03;Coevorden
+0528;03;Hoogeveen
+0591;03;Emmen
+0592;03;Assen
+0593;03;Beilen
+0598;03;Zuidlaren
+0599;03;Borger
+038;04;Zwolle
+0521;04;Giethoorn
+0522;04;Staphorst
+0523;04;Hardenberg
+0524;04;De Krim
+0527;04;Vollenhove
+0529;04;Dalfsen
+0570;04;Deventer
+0572;04;Raalte
+053;05;Enschede
+0541;05;Oldenzaal
+0547;05;Goor
+0548;05;Rijssen
+074;05;Hengelo Ov
+0543;06;Winterswijk
+0544;06;Groenlo
+0545;06;Eibergen
+0314;06;Doetinchem
+0315;06;Terborg
+055;06;Apeldoorn
+0341;06;Harderwijk
+0525;06;Elburg
+0571;06;Twello
+0573;06;Lochem
+0575;06;Zutphen
+0577;06;Garderen
+0578;06;Heerde
+026;07;Arnhem
+0313;07;Dieren
+0316;07;Zevenaar
+0317;07;Wageningen
+0318;07;Ede Gld
+0342;07;Barneveld
+0481;07;Bemmel
+0488;07;Zetten
+0475;07;Roermond
+0478;07;Venray
+077;07;Venlo
+024;08;Nijmegen
+0344;08;Tiel
+0345;08;Culemborg
+0418;08;Zaltbommel
+0487;08;Druten
+030;09;Utrecht
+033;09;Amersfoort
+0343;09;Doorn
+0346;09;Maarssen
+0348;09;Woerden
+0297;09;Uithoorn
+072;10;Alkmaar
+0222;10;Den Burg
+0223;10;Den Helder
+0224;10;Schagen
+0226;10;Noord-Scharwoude
+0227;10;Medemblik
+0228;10;Enkhuizen
+0229;10;Hoorn Nh
+0320;11;Lelystad
+0321;11;Dronten
+036;11;Almere
+023;12;Haarlem
+0251;12;Beverwijk
+0255;12;IJmuiden
+020;13;Amsterdam
+075;13;Zaandam
+0299;13;Purmerend
+035;14;S Graveland
+0294;14;Weesp
+015;15;Delft
+079;15;Zoetermeer
+0174;15;Naaldwijk
+070;15;Den Haag
+071;16;Leiden
+0172;16;Alphen aan den Rijn
+0182;16;Gouda
+0252;16;Lisse
+010;17;Rotterdam
+0180;17;Ridderkerk
+0181;17;Spijkenisse
+0187;17;Middelharnis
+0161;18;Rijen
+0162;18;Oosterhout Nb
+0164;18;Bergen Op Zoom
+0165;18;Roosendaal
+0167;18;Steenbergen
+0183;18;Gorinchem
+0184;18;Sliedrecht
+0186;18;Oud Beijerland
+076;18;Breda
+0416;18;Waalwijk
+0347;18;Vianen Zh
+0168;20;Zevenbergen
+0111;19;Zierikzee
+0113;19;Goes
+0114;19;Hulst
+0115;19;Terneuzen
+0117;19;Sluis
+0118;19;Middelburg
+0166;20;Tholen
+013;20;Tilburg
+0411;21;Boxtel
+0412;21;Oss
+0413;21;Veghel
+0485;21;Boxmeer
+0486;21;Grave
+073;21;S-Hertogenbosch
+040;22;Eindhoven
+0492;22;Helmond
+0493;22;Deurne
+0495;22;Weert
+0497;22;Eersel
+0499;22;Best
+0475;23;Roermond
+043;24;Maastricht
+045;24;Heerlen
+046;24;Sittard
+0527;25;Emmeloord
