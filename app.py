@@ -101,23 +101,35 @@ def _parse_numbers(raw_numbers: str) -> List[ParsedNumber]:
 
         lookup_national, is_wildcard = _normalize_for_lookup(cleaned_line)
 
-        if is_wildcard:
-            # For wildcard blocks, the exported number must remain exactly as entered.
-            export_value = cleaned_line
-        else:
-            # For non-wildcard numbers, export without the leading 0.
-            export_value = cleaned_line
-            if lookup_national:
+        export_value = cleaned_line
+
+        # 050-region handling first to preserve the existing behaviour and
+        # avoid changing ambiguous prefix handling.
+        if lookup_national and lookup_national.startswith("050"):
+            if is_wildcard:
+                # For 050 wildcard blocks (e.g. 506882XX) keep the user's text
+                # exactly as entered; only PE resolution uses the normalized
+                # 050 form.
+                export_value = cleaned_line
+            else:
                 digits = "".join(ch for ch in lookup_national if ch.isdigit())
                 if digits.startswith("050") and len(digits) == 9:
-                    # Special case for 050 region: keep the 50 prefix but drop the
-                    # leading 0 so that, for example, 050688200 → 50688200.
+                    # Keep the 50 prefix but drop the leading 0, e.g.
+                    # 050688200 → 50688200.
                     export_value = digits[1:]
-                elif digits.startswith("0") and len(digits) >= 10:
-                    # Generic national format: strip leading 0 and keep next 9 digits.
-                    export_value = digits[1:10]
-                elif len(digits) == 9:
+                elif digits:
                     export_value = digits
+        else:
+            # General rule for all non-050 numbers (wildcard or not):
+            # normalize any format to a 9-character local representation by
+            # taking the last 9 characters of the cleaned number (digits and X).
+            export_clean = "".join(
+                ch for ch in cleaned_line if ch.isdigit() or ch in {"X", "x"}
+            )
+            if len(export_clean) >= 9:
+                export_value = export_clean[-9:]
+            elif len(export_clean) > 0:
+                export_value = export_clean
 
         parsed.append(
             ParsedNumber(
