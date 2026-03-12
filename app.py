@@ -64,6 +64,14 @@ def _normalize_for_lookup(raw: str) -> Tuple[Optional[str], bool]:
 
     cleaned = "".join(cleaned_chars)
 
+    # Handle 0031 / 31 country code variants that were not covered by the +31
+    # logic above. This ensures inputs like 3144... are treated as 044...
+    # for lookup, so the correct PE region (e.g. 044 -> PE60) is chosen.
+    if cleaned.startswith("0031"):
+        cleaned = "0" + cleaned[4:]
+    elif cleaned.startswith("31"):
+        cleaned = "0" + cleaned[2:]
+
     # For wildcard lookup, treat X as 0.
     lookup_str = cleaned.replace("X", "0")
 
