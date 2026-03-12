@@ -304,7 +304,7 @@ def index():
 
 
 if __name__ == "__main__":
-    # Bind to 0.0.0.0 so the app is reachable from outside
-    # the container when running under Docker.
+    # Simple built-in server for local testing and Docker.
+    # Bind to 0.0.0.0 so the container's port 5000 is reachable.
     app.run(host="0.0.0.0", port=5000, debug=True)
 

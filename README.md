@@ -42,11 +42,7 @@ The tool is designed for telecom engineers and focuses on safety, predictability
    source .venv/bin/activate  # on Windows: .venv\Scripts\activate
    ```
 
-<<<<<<< HEAD
-2. Install dependencies:
-=======
 2. Install dependencies (pandas is not required for core functionality):
->>>>>>> 970742c (first commit)
 
    ```bash
    pip install -r requirements.txt
