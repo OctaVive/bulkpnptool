@@ -1,0 +1,46 @@
+Baars;03
+Basse;03
+Darp;03
+De Bult;03
+De Pol;03
+Diever;03
+Dieverbrug;03
+Doldersum;03
+Dwingeloo;03
+Eemster;03
+Eese;03
+Eesveen;03
+Frederiksoord;03
+Geeuwenbrug Gem Diever;03
+Gelderingen;03
+Giethoorn;04
+Havelte;03
+Havelterberg;03
+Kallenkote;03
+Kerkbuurt Ov;03
+Leggeloo;03
+Lhee;03
+Lheebroek;03
+Marijenkampen;03
+Nijensleek;03
+Onna;03
+Oude Willem;03
+Scheerwolde;04
+Steenwijk;03
+Steenwijkerwold;03
+Thij;03
+Tuk;03
+Uffelte;03
+Vledder;03
+Vledderveen Dr;03
+Wapse;03
+Wapserveen;03
+Wateren;03
+Wetering;04
+Wilhelminaoord;03
+Willemsoord;03
+Willemsoord;03
+Witte Paarden;03
+Wittelte;03
+Zorgvlied;03
+Zuidveen;03

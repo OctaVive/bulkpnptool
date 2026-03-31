@@ -1,0 +1,31 @@
+Ane;04
+Anerveen;04
+Anevelde;04
+Coevorden;03
+Dalen;03
+Dalerend;03
+Dalerpeel;04
+Dalerveen;03
+De Klencke;03
+De Krim;04
+Den Velde;04
+Gees;03
+Geesbrug;03
+Gramsbergen;04
+Holtheme;04
+Holthone;03
+Loozen;04
+Nieuw Schoonebeek;03
+Nieuw Zwinderen;03
+Nieuwe Krim;04
+Oosterhesselen;03
+Padhuis;03
+Pikveld;03
+Schoonebeek;03
+Steenwijksmoer;03
+Stieltjeskanaal;03
+Vlieghuis;03
+Wachtum;03
+Weiteveen;03
+Weijerswold;03
+Zwinderen;03

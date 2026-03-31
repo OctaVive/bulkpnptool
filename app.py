@@ -21,6 +21,17 @@ class ParsedNumber:
     export_value: str               # exact value to write into CSV
 
 
+SPECIAL_LOCATION_PREFIXES: Tuple[str, ...] = (
+    "050",
+    "0521",
+    "0522",
+    "0524",
+    "0527",
+    "0598",
+    "0599",
+)
+
+
 def _clean_input_line(line: str) -> str:
     # Strip surrounding whitespace but otherwise keep as-is for wildcard export.
     return line.strip()
@@ -80,8 +91,8 @@ def _normalize_for_lookup(raw: str) -> Tuple[Optional[str], bool]:
 
     # If we see a local 050-range number (starting with "50"), make it explicit
     # national format "050..." so that it is treated as ambiguous and triggers
-    # the 050 selection flow. We do not apply the generic 9-digit rule again
-    # in this case to avoid ending up with "0050...".
+    # the 050 / special-prefix selection flow. We do not apply the generic
+    # 9-digit rule again in this case to avoid ending up with "0050...".
     if digits_only.startswith("50") and not digits_only.startswith("050"):
         digits_only = "0" + digits_only
     elif len(digits_only) == 9:
@@ -111,9 +122,10 @@ def _parse_numbers(raw_numbers: str) -> List[ParsedNumber]:
 
         export_value = cleaned_line
 
-        # 050-region handling first to preserve the existing behaviour and
-        # avoid changing ambiguous prefix handling.
-        if lookup_national and lookup_national.startswith("050"):
+        # Special-location prefixes (050 / 0521 / 0522 / 0524 / 0527 / 0598 / 0599)
+        # are handled first to preserve the existing 050 behaviour and avoid
+        # changing ambiguous prefix handling.
+        if lookup_national and lookup_national.startswith(tuple(SPECIAL_LOCATION_PREFIXES)):
             if is_wildcard:
                 # For 050 wildcard blocks (e.g. 506882XX) keep the user's text
                 # exactly as entered; only PE resolution uses the normalized
@@ -121,18 +133,17 @@ def _parse_numbers(raw_numbers: str) -> List[ParsedNumber]:
                 export_value = cleaned_line
             else:
                 digits = "".join(ch for ch in lookup_national if ch.isdigit())
-                if digits.startswith("050"):
-                    # Non-wildcard 050 numbers must be exported as 9 digits
-                    # without the leading 0, e.g. 0506882000 → 506882000 and
-                    # 050688200 → 50688200.
+                if digits:
+                    # For special-location prefixes we keep exporting the
+                    # "local" 9-digit form (strip the first digit when a full
+                    # 10-digit national number is present), matching the
+                    # original 050 behaviour.
                     if len(digits) >= 10:
                         export_value = digits[1:10]
                     elif len(digits) == 9:
                         export_value = digits[1:]
                     else:
                         export_value = digits
-                elif digits:
-                    export_value = digits
         else:
             # General rule for all non-050 numbers (wildcard or not):
             # normalize any format to a 9-character local representation by
@@ -157,38 +168,65 @@ def _parse_numbers(raw_numbers: str) -> List[ParsedNumber]:
     return parsed
 
 
-def _load_050_locations() -> List[Dict[str, str]]:
+def _load_special_locations_by_prefix() -> Dict[str, List[Dict[str, str]]]:
+    """
+    Load special PE location lists per prefix (050/0521/0522/0524/0527/0598/0599).
+
+    Returned format:
+      {
+        "050": [{"city": "...", "pe_code": "..."}, ...],
+        "0521": [...],
+        ...
+      }
+    """
     from pathlib import Path
 
-    locations_file = Path(__file__).parent / "data" / "050_locations.txt"
-    locations: List[Dict[str, str]] = []
+    base_dir = Path(__file__).parent / "data"
+    locations_by_prefix: Dict[str, List[Dict[str, str]]] = {}
 
-    if not locations_file.exists():
-        return locations
+    for prefix in SPECIAL_LOCATION_PREFIXES:
+        locations: List[Dict[str, str]] = []
+        locations_file = base_dir / f"{prefix}_locations.txt"
+        if locations_file.exists():
+            with locations_file.open("r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line or line.startswith("#"):
+                        continue
+                    parts = line.split(";")
+                    if len(parts) < 2:
+                        continue
+                    city = parts[0].strip()
+                    pe_code = parts[1].strip()
+                    if not city or not pe_code:
+                        continue
+                    locations.append({"city": city, "pe_code": pe_code})
 
-    with locations_file.open("r", encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if not line or line.startswith("#"):
-                continue
-            parts = line.split(";")
-            if len(parts) < 2:
-                continue
-            city = parts[0].strip()
-            pe_code = parts[1].strip()
-            if not city or not pe_code:
-                continue
-            locations.append({"city": city, "pe_code": pe_code})
+        # Sort alphabetically by city name so the dropdown is ordered.
+        locations.sort(key=lambda loc: loc["city"].lower())
+        locations_by_prefix[prefix] = locations
 
-    return locations
+    return locations_by_prefix
 
 
-def _collect_050_numbers(parsed_numbers: List[ParsedNumber]) -> List[ParsedNumber]:
-    fifty_numbers: List[ParsedNumber] = []
+def _collect_special_location_numbers(parsed_numbers: List[ParsedNumber]) -> List[ParsedNumber]:
+    special_numbers: List[ParsedNumber] = []
     for p in parsed_numbers:
-        if p.lookup_national and p.lookup_national.startswith("050"):
-            fifty_numbers.append(p)
-    return fifty_numbers
+        if p.lookup_national and p.lookup_national.startswith(tuple(SPECIAL_LOCATION_PREFIXES)):
+            special_numbers.append(p)
+    return special_numbers
+
+
+def _get_special_prefix(lookup_national: str) -> Optional[str]:
+    """
+    Determine which special prefix a normalized national lookup number belongs to.
+
+    Order matters: check longer prefixes first (e.g. 0521 before 05x, etc.).
+    """
+    for prefix in sorted(SPECIAL_LOCATION_PREFIXES, key=len, reverse=True):
+        if lookup_national.startswith(prefix):
+            return prefix
+    return None
 
 
 def _build_csv_rows(
@@ -211,8 +249,9 @@ def _build_csv_rows(
             # generating potentially unsafe provisioning rows.
             continue
 
-        # Handle ambiguous 050 numbers with user-provided PE override.
-        if p.lookup_national.startswith("050"):
+        # Handle ambiguous special-location numbers (050 / 0521 / 0522 / 0524 /
+        # 0527 / 0598 / 0599) with user-provided PE override.
+        if p.lookup_national.startswith(tuple(SPECIAL_LOCATION_PREFIXES)):
             pe_code = pe_050_overrides.get(p.lookup_national)
             if not pe_code:
                 # No user selection; do not auto-resolve.
@@ -276,31 +315,49 @@ def index():
     pbx_id_to = request.form.get("pbx_id_to", "")
 
     parsed_numbers = _parse_numbers(numbers_raw)
-    fifty_numbers = _collect_050_numbers(parsed_numbers)
+    special_numbers = _collect_special_location_numbers(parsed_numbers)
 
     confirm_050 = request.form.get("confirm_050")
 
-    if fifty_numbers and not confirm_050:
-        # Render 050 selection popup.
-        locations = _load_050_locations()
+    if special_numbers and not confirm_050:
+        # Render special-prefix selection popup.
+        # Provide locations per prefix so each number row shows the correct
+        # dropdown list (e.g. 050 -> 050_locations.txt only).
+        locations_by_prefix = _load_special_locations_by_prefix()
+
+        unique_prefixes = {
+            _get_special_prefix(n.lookup_national)
+            for n in special_numbers
+            if n.lookup_national is not None
+        }
+        unique_prefixes.discard(None)
+
+        # If mixed prefixes are present, hide the bulk location picker because
+        # it can't safely apply across different *_locations.txt lists.
+        bulk_locations: Optional[List[Dict[str, str]]] = None
+        if len(unique_prefixes) == 1:
+            only_prefix = next(iter(unique_prefixes), None)
+            if only_prefix:
+                bulk_locations = locations_by_prefix.get(only_prefix, [])
         # Use lookup_national as the key, which will be a 10-digit national-format
         # number beginning with 050, e.g. 0501234567. This matches the example
         # pe_0501234567=01.
         return render_template(
             "select_050.html",
-            numbers_050=fifty_numbers,
-            locations=locations,
+            numbers_050=special_numbers,
+            locations_by_prefix=locations_by_prefix,
+            bulk_locations=bulk_locations,
             numbers_raw=numbers_raw,
             operation=operation,
             pbx_id_from=pbx_id_from,
             pbx_id_to=pbx_id_to,
         )
 
-    # If we are here, either there were no 050 numbers or the user already
-    # confirmed the PE codes for them.
+    # If we are here, either there were no special-prefix numbers or the user
+    # already confirmed the PE codes for them.
     pe_050_overrides: Dict[str, str] = {}
     if confirm_050:
-        # Collect all submitted PE codes for 050 numbers.
+        # Collect all submitted PE codes for special-location numbers.
         for key, value in request.form.items():
             if not key.startswith("pe_"):
                 continue

@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <title>Select 050 Locations</title>
+    <title>Select Locations for Special Prefixes</title>
     <style>
       body {
         font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -181,9 +181,10 @@
   <body>
     <div class="container">
       <div class="card">
-        <h1>Select PE location for 050 numbers</h1>
+        <h1>Select PE location for special prefixes</h1>
         <p>
-          The following 050 numbers are ambiguous and cannot be resolved automatically.
+          The following numbers are ambiguous (050 / 0521 / 0522 / 0524 / 0527 / 0598 / 0599)
+          and cannot be resolved automatically.
           Please select the correct location (and PE code) for each number. No provisioning
           rows will be generated until you confirm these choices.
         </p>
@@ -201,7 +202,7 @@
                 <th style="width: 40px; text-align: center;">
                   <input type="checkbox" id="check_all_050">
                 </th>
-                <th>050 number</th>
+                <th>Special number</th>
                 <th>Select location (PE code)</th>
               </tr>
             </thead>
@@ -215,16 +216,38 @@
                   <code>{{ item.raw_input }}</code>
                 </td>
                 <td>
-                  {% if locations %}
+                  {% set prefix = None %}
+                  {% if item.lookup_national.startswith('0599') %}
+                    {% set prefix = '0599' %}
+                  {% elif item.lookup_national.startswith('0598') %}
+                    {% set prefix = '0598' %}
+                  {% elif item.lookup_national.startswith('0527') %}
+                    {% set prefix = '0527' %}
+                  {% elif item.lookup_national.startswith('0524') %}
+                    {% set prefix = '0524' %}
+                  {% elif item.lookup_national.startswith('0522') %}
+                    {% set prefix = '0522' %}
+                  {% elif item.lookup_national.startswith('0521') %}
+                    {% set prefix = '0521' %}
+                  {% elif item.lookup_national.startswith('050') %}
+                    {% set prefix = '050' %}
+                  {% endif %}
+
+                  {% set locs = [] %}
+                  {% if prefix and prefix in locations_by_prefix %}
+                    {% set locs = locations_by_prefix[prefix] %}
+                  {% endif %}
+
+                  {% if locs %}
                     <select name="pe_{{ item.lookup_national }}" class="row-select-050">
-                      {% for loc in locations %}
+                      {% for loc in locs %}
                         <option value="{{ loc.pe_code }}" data-city="{{ loc.city }}" data-pe="{{ loc.pe_code }}">
                           {{ loc.city }} (PE{{ loc.pe_code }})
                         </option>
                       {% endfor %}
                     </select>
                   {% else %}
-                    <em>No 050 locations configured (data/050_locations.txt)</em>
+                    <em>No locations configured (data/{{ prefix }}_locations.txt)</em>
                   {% endif %}
                 </td>
               </tr>
@@ -232,12 +255,12 @@
             </tbody>
           </table>
 
-          {% if locations %}
+          {% if bulk_locations %}
           <div class="bulk-controls">
             <span class="bulk-label-strong">Assign same location to selected numbers:</span>
             <select id="bulk_location">
               <option value="">-- choose location --</option>
-              {% for loc in locations %}
+              {% for loc in bulk_locations %}
               <option value="{{ loop.index0 }}" data-city="{{ loc.city }}" data-pe="{{ loc.pe_code }}">
                 {{ loc.city }} (PE{{ loc.pe_code }})
               </option>

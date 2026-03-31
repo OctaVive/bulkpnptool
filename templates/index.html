@@ -251,7 +251,7 @@
             <ul>
               <li><strong>Input formats</strong> — Accepts <code>455688200</code>, <code>0455688200</code>, <code>+31455688200</code>, and wildcard blocks like <code>45568820X</code>.</li>
               <li><strong>PE codes</strong> — Resolved from <code>data/pe_codes.txt</code> using 4-digit then 3-digit Dutch prefixes.</li>
-              <li><strong>050 numbers</strong> — Never auto-resolved; a location selector is shown using <code>data/050_locations.txt</code>.</li>
+              <li><strong>050 / 0521 / 0522 / 0524 / 0527 / 0598 / 0599 numbers</strong> — Never auto-resolved; a location selector is shown using the corresponding <code>data/*_locations.txt</code> files.</li>
               <li><strong>Wildcard blocks</strong> — Used for PE lookup only (with <code>X→0</code>), but exported exactly as entered.</li>
               <li><strong>CSV format</strong> — <code>RowNumber;Operation;PhoneNumber;PE Code;PBX-ID</code> with 9‑digit phone numbers for non-wildcards.</li>
             </ul>

@@ -1,0 +1,24 @@
+ T Haagje;04
+Ansen;03
+Berghuizen Dr;03
+Broekhuizen Dr;03
+De Stapel;03
+De Wijk;03
+Dijkhuizen Dr;03
+Haakswold;03
+Koekange;03
+Kolderveen;03
+Kolderveense Bovenboer;03
+Lankhorst;04
+Lichtmis;04
+Meppel;03
+Nijeveen;03
+Nijeveense Bovenboer;03
+Oosterboer;03
+Rogat;03
+Rouveen;04
+Ruinen;03
+Ruinerwold;03
+Staphorst;04
+Wanneperveen;04
+IJhorst;03
