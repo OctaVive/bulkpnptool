@@ -168,6 +168,85 @@ def _parse_numbers(raw_numbers: str) -> List[ParsedNumber]:
     return parsed
 
 
+def _normalize_for_block_export(raw: str) -> Optional[str]:
+    """
+    Normalize a user-entered number/block to national display format for XLSX.
+
+    Output keeps wildcard markers and aims for 10-character Dutch national
+    format, e.g. 455688200 -> 0455688200 and 45568820X -> 045568820x.
+    """
+    if not raw:
+        return None
+
+    s = raw.strip()
+    if not s:
+        return None
+
+    if s.startswith("+31"):
+        s = "0" + s[3:]
+
+    cleaned_chars: List[str] = []
+    for ch in s:
+        if ch.isdigit():
+            cleaned_chars.append(ch)
+        elif ch in {"X", "x"}:
+            cleaned_chars.append("x")
+
+    if not cleaned_chars:
+        return None
+
+    cleaned = "".join(cleaned_chars)
+
+    if cleaned.startswith("0031"):
+        cleaned = "0" + cleaned[4:]
+    elif cleaned.startswith("31"):
+        cleaned = "0" + cleaned[2:]
+
+    if len(cleaned) == 9 and not cleaned.startswith("0"):
+        cleaned = "0" + cleaned
+
+    return cleaned
+
+
+def _block_type_for_value(block_value: str) -> str:
+    wildcard_count = block_value.count("x")
+    if wildcard_count == 0:
+        return "Single number"
+    if wildcard_count == 1:
+        return "10 numbers"
+    if wildcard_count == 2:
+        return "100 numbers"
+    if wildcard_count == 3:
+        return "1000 numbers"
+    return f"{10 ** wildcard_count} numbers"
+
+
+def _build_xlsx_blocks(raw_numbers: str) -> bytes:
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Blocks"
+    ws.append(["BlockType", "Block"])
+
+    header_fill = PatternFill(fill_type="solid", start_color="E60000", end_color="E60000")
+    header_font = Font(color="FFFFFF", bold=True)
+    for cell in ws[1]:
+        cell.fill = header_fill
+        cell.font = header_font
+
+    for line in raw_numbers.splitlines():
+        normalized = _normalize_for_block_export(line)
+        if not normalized:
+            continue
+        ws.append([_block_type_for_value(normalized), normalized])
+
+    output = io.BytesIO()
+    wb.save(output)
+    return output.getvalue()
+
+
 def _load_special_locations_by_prefix() -> Dict[str, List[Dict[str, str]]]:
     """
     Load special PE location lists per prefix (050/0521/0522/0524/0527/0598/0599).
@@ -313,6 +392,15 @@ def index():
     operation = request.form.get("operation", "ADD")
     pbx_id_from = request.form.get("pbx_id_from", "")
     pbx_id_to = request.form.get("pbx_id_to", "")
+    output_format = request.form.get("output_format", "csv").lower()
+
+    if output_format == "xlsx":
+        xlsx_data = _build_xlsx_blocks(numbers_raw)
+        headers = {
+            "Content-Disposition": 'attachment; filename="bulk_number_blocks.xlsx"',
+            "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        }
+        return Response(xlsx_data, headers=headers)
 
     parsed_numbers = _parse_numbers(numbers_raw)
     special_numbers = _collect_special_location_numbers(parsed_numbers)

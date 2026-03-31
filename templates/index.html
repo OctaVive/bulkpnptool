@@ -12,7 +12,7 @@
         color: #000000;
       }
       .container {
-        max-width: 960px;
+        max-width: 760px;
         margin: 0 auto;
         padding: 32px 16px 48px;
       }
@@ -112,6 +112,15 @@
         transform: translateY(0);
         box-shadow: 0 8px 18px rgba(0, 0, 0, 0.2);
       }
+      .button-row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 20px;
+      }
+      .button-row .btn-primary {
+        margin-top: 0;
+      }
       .badge {
         display: inline-flex;
         align-items: center;
@@ -130,14 +139,7 @@
         background: #e60000;
       }
       .layout {
-        display: grid;
-        grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
-        gap: 24px;
-      }
-      @media (max-width: 900px) {
-        .layout {
-          grid-template-columns: minmax(0, 1fr);
-        }
+        display: block;
       }
       ul {
         margin: 0.25rem 0 0.75rem;
@@ -197,12 +199,8 @@
             <img src="/assets/Icon-88248495-6083-4dcf-8cb0-1d42d1fb34e3.png" alt="Vodafone logo" style="width:40px;height:40px;border-radius:50%;">
             <div>
               <h1>Vodafone Bulk PNP Provisioning</h1>
-              <p>CSV file genrator for VOF NGIN.</p>
+              <p>CSV file genrator for VOF NGIN and ENUM.</p>
             </div>
-          </div>
-          <div class="badge">
-            <span class="badge-dot"></span>
-            <span>Provisioning-safe · PE lookup from file</span>
           </div>
         </div>
       </header>
@@ -241,21 +239,16 @@
               </div>
             </div>
 
-            <button class="btn-primary" type="submit">
-              Generate CSV
-            </button>
+            <div class="button-row">
+              <button class="btn-primary" type="submit" name="output_format" value="csv">
+                Generate NGIN file
+              </button>
+              <button class="btn-primary" type="submit" name="output_format" value="xlsx">
+                Generate ENUM file
+              </button>
+            </div>
           </form>
 
-          <section>
-            <h2>How it works</h2>
-            <ul>
-              <li><strong>Input formats</strong> — Accepts <code>455688200</code>, <code>0455688200</code>, <code>+31455688200</code>, and wildcard blocks like <code>45568820X</code>.</li>
-              <li><strong>PE codes</strong> — Resolved from <code>data/pe_codes.txt</code> using 4-digit then 3-digit Dutch prefixes.</li>
-              <li><strong>050 / 0521 / 0522 / 0524 / 0527 / 0598 / 0599 numbers</strong> — Never auto-resolved; a location selector is shown using the corresponding <code>data/*_locations.txt</code> files.</li>
-              <li><strong>Wildcard blocks</strong> — Used for PE lookup only (with <code>X→0</code>), but exported exactly as entered.</li>
-              <li><strong>CSV format</strong> — <code>RowNumber;Operation;PhoneNumber;PE Code;PBX-ID</code> with 9‑digit phone numbers for non-wildcards.</li>
-            </ul>
-          </section>
         </div>
       </div>
     </div>
