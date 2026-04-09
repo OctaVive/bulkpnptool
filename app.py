@@ -236,6 +236,9 @@ def _build_xlsx_blocks(raw_numbers: str) -> bytes:
         cell.fill = header_fill
         cell.font = header_font
 
+    # XLSX export is intentionally "display oriented": one input line maps to one
+    # row, and unresolved/invalid lines are skipped quietly to mirror CSV input
+    # tolerance instead of failing the full download.
     for line in raw_numbers.splitlines():
         normalized = _normalize_for_block_export(line)
         if not normalized:
@@ -263,6 +266,8 @@ def _load_special_locations_by_prefix() -> Dict[str, List[Dict[str, str]]]:
     base_dir = Path(__file__).parent / "data"
     locations_by_prefix: Dict[str, List[Dict[str, str]]] = {}
 
+    # Each prefix has its own city/PE dataset. Keeping these split prevents
+    # accidental cross-prefix PE choices in the UI.
     for prefix in SPECIAL_LOCATION_PREFIXES:
         locations: List[Dict[str, str]] = []
         locations_file = base_dir / f"{prefix}_locations.txt"
@@ -320,6 +325,7 @@ def _build_csv_rows(
     rows: List[List[str]] = []
     row_number = 1
 
+    # We normalize once here so all downstream comparisons are case-insensitive.
     op = operation.upper()
 
     for p in parsed_numbers:
@@ -342,6 +348,8 @@ def _build_csv_rows(
                 continue
 
         # Determine which PBX ID(s) to use based on operation.
+        # MOVE is modelled as two independent provisioning actions to preserve
+        # explicit operation ordering in the generated CSV.
         if op == "ADD":
             logical_ops = [("addPNP", pbx_id_to)]
         elif op == "DELETE":
@@ -394,6 +402,8 @@ def index():
     pbx_id_to = request.form.get("pbx_id_to", "")
     output_format = request.form.get("output_format", "csv").lower()
 
+    # XLSX mode bypasses PE resolution entirely and only exports normalized
+    # block descriptors, so it can be generated immediately.
     if output_format == "xlsx":
         xlsx_data = _build_xlsx_blocks(numbers_raw)
         headers = {
@@ -407,6 +417,7 @@ def index():
 
     confirm_050 = request.form.get("confirm_050")
 
+    # First POST for ambiguous prefixes: ask user for explicit PE per number.
     if special_numbers and not confirm_050:
         # Render special-prefix selection popup.
         # Provide locations per prefix so each number row shows the correct
@@ -449,6 +460,8 @@ def index():
         for key, value in request.form.items():
             if not key.startswith("pe_"):
                 continue
+            # Form keys are emitted as pe_<national_number>, where national_number
+            # is the normalized lookup key used during row generation.
             national_number = key[len("pe_") :]
             pe_050_overrides[national_number] = value
 

@@ -18,6 +18,7 @@ class PEProcessor:
         2) Fallback to 3-digit prefix
     """
 
+    # Lock guards first-time singleton initialization in multi-threaded WSGI runs.
     _instance_lock = threading.Lock()
     _instance: Optional["PEProcessor"] = None
 
@@ -85,6 +86,8 @@ class PEProcessor:
         if national_number.startswith("050"):
             return None
 
+        # Prefix precedence matters: use the longest configured prefix first so
+        # specific 4-digit overrides win over broader 3-digit mappings.
         # Try 4-digit prefix first, then 3-digit.
         if len(national_number) >= 4:
             prefix4 = national_number[:4]
@@ -111,7 +114,7 @@ class PEProcessor:
             if pe is not None:
                 return pe
 
-        # Fallback: look at the first digits of the subscriber part
+        # Final fallback: look at the first digits of the subscriber part
         # (local number without the leading '0' of the national format),
         # e.g. "455688211" -> "45" -> PE24, "71688200" -> "71" -> PE16.
         digits = "".join(ch for ch in national_number if ch.isdigit())
