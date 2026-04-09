@@ -39,7 +39,6 @@ Wateren;03
 Wetering;04
 Wilhelminaoord;03
 Willemsoord;03
-Willemsoord;03
 Witte Paarden;03
 Wittelte;03
 Zorgvlied;03

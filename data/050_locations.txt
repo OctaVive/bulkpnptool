@@ -3,23 +3,19 @@ Adorp;01
 Bedum;01
 Eelde;03
 Roden;03
-Adorp;01
 Aduard;01
 Alteveer Gem Roden;03
 Alteveer Noordenv;03
-Bedum;01
 De Groeve;03
 Den Ham Gn;01
 Den Horn;01
 Dorkwerd;01
-Eelde;03
 Eelderwolde;03
 Ellerhuizen;01
 Engelbert;01
 Foxwolde;03
 Garmerwolde;01
 Glimmen;01
-Groningen;01
 Haren Gn;01
 Harkstede;01
 Hoogkerk;01
@@ -40,7 +36,6 @@ Oostwold Gem Leek;01
 Paterswolde;03
 Peize;03
 Peizermade;03
-Roden;03
 Roderesch;03
 Roderwolde;03
 Ruischerbrug;01
