@@ -16,7 +16,7 @@ The tool is designed for telecom engineers and focuses on safety, predictability
 - **CSV output**:
   - Semicolon-separated
   - Columns (fixed order): `RowNumber;Operation;PhoneNumber;PE Code;PBX-ID`
-  - Filename: `bulk_pnp_operations.csv`
+  - Filename format: `bulkpnp_ddMMyyyyHHmm.csv` (example: `bulkpnp_290420260942.csv`)
 - **PE code resolution**:
   - Uses `data/pe_codes.txt`
   - 4‑digit prefix lookup first, then 3‑digit

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import io
+from datetime import datetime
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 
@@ -482,9 +483,10 @@ def index():
     csv_data = output.getvalue()
     output.close()
 
-    # Serve as file download.
+    # Serve as file download with a timestamped filename.
+    filename = f'bulkpnp_{datetime.now().strftime("%d%m%Y%H%M")}.csv'
     headers = {
-        "Content-Disposition": 'attachment; filename="bulk_pnp_operations.csv"',
+        "Content-Disposition": f'attachment; filename="{filename}"',
         "Content-Type": "text/csv; charset=utf-8",
     }
     return Response(csv_data, headers=headers)
