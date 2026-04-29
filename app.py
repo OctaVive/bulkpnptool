@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import csv
 import io
-from datetime import datetime
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 
@@ -483,8 +482,16 @@ def index():
     csv_data = output.getvalue()
     output.close()
 
-    # Serve as file download with a timestamped filename.
-    filename = f'bulkpnp_{datetime.now().strftime("%d%m%Y%H%M")}.csv'
+    # Serve as file download with operation/PBX-specific filename.
+    op = operation.upper()
+    if op == "ADD":
+        filename = f"add{pbx_id_to}.csv"
+    elif op == "DELETE":
+        filename = f"del{pbx_id_from}.csv"
+    elif op == "MOVE":
+        filename = f"move{pbx_id_from}to{pbx_id_to}.csv"
+    else:
+        filename = "bulkpnp.csv"
     headers = {
         "Content-Disposition": f'attachment; filename="{filename}"',
         "Content-Type": "text/csv; charset=utf-8",
