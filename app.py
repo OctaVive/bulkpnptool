@@ -127,10 +127,18 @@ def _parse_numbers(raw_numbers: str) -> List[ParsedNumber]:
         # changing ambiguous prefix handling.
         if lookup_national and lookup_national.startswith(tuple(SPECIAL_LOCATION_PREFIXES)):
             if is_wildcard:
-                # For 050 wildcard blocks (e.g. 506882XX) keep the user's text
-                # exactly as entered; only PE resolution uses the normalized
-                # 050 form.
-                export_value = cleaned_line
+                # Wildcard ranges for special prefixes should follow the same
+                # local export shape as single DIDs: 9 characters, without the
+                # national leading 0 when present.
+                export_clean = "".join(
+                    ch for ch in cleaned_line if ch.isdigit() or ch in {"X", "x"}
+                )
+                if len(export_clean) >= 10 and export_clean.startswith("0"):
+                    export_value = export_clean[1:10]
+                elif len(export_clean) >= 9:
+                    export_value = export_clean[-9:]
+                elif len(export_clean) > 0:
+                    export_value = export_clean
             else:
                 digits = "".join(ch for ch in lookup_national if ch.isdigit())
                 if digits:
@@ -334,18 +342,23 @@ def _build_csv_rows(
             # generating potentially unsafe provisioning rows.
             continue
 
-        # Handle ambiguous special-location numbers (050 / 0521 / 0522 / 0524 /
-        # 0527 / 0598 / 0599) with user-provided PE override.
-        if p.lookup_national.startswith(tuple(SPECIAL_LOCATION_PREFIXES)):
-            pe_code = pe_050_overrides.get(p.lookup_national)
-            if not pe_code:
-                # No user selection; do not auto-resolve.
-                continue
+        # DELETE operations do not require PE lookup/selection.
+        # The backend expects plain "00" for deletion rows.
+        if op == "DELETE":
+            pe_code = "00"
         else:
-            pe_code = pe_processor.resolve_pe_code(p.lookup_national)
-            if not pe_code:
-                # No mapping; skip to avoid unsafe provisioning.
-                continue
+            # Handle ambiguous special-location numbers (050 / 0521 / 0522 / 0524 /
+            # 0527 / 0598 / 0599) with user-provided PE override.
+            if p.lookup_national.startswith(tuple(SPECIAL_LOCATION_PREFIXES)):
+                pe_code = pe_050_overrides.get(p.lookup_national)
+                if not pe_code:
+                    # No user selection; do not auto-resolve.
+                    continue
+            else:
+                pe_code = pe_processor.resolve_pe_code(p.lookup_national)
+                if not pe_code:
+                    # No mapping; skip to avoid unsafe provisioning.
+                    continue
 
         # Determine which PBX ID(s) to use based on operation.
         # MOVE is modelled as two independent provisioning actions to preserve
@@ -414,11 +427,13 @@ def index():
 
     parsed_numbers = _parse_numbers(numbers_raw)
     special_numbers = _collect_special_location_numbers(parsed_numbers)
+    operation_upper = operation.upper()
 
     confirm_050 = request.form.get("confirm_050")
 
     # First POST for ambiguous prefixes: ask user for explicit PE per number.
-    if special_numbers and not confirm_050:
+    # DELETE does not need PE selection; it always uses PE00.
+    if operation_upper in {"ADD", "MOVE"} and special_numbers and not confirm_050:
         # Render special-prefix selection popup.
         # Provide locations per prefix so each number row shows the correct
         # dropdown list (e.g. 050 -> 050_locations.txt only).

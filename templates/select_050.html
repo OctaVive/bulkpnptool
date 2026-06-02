@@ -173,6 +173,17 @@
             });
           });
         }
+
+        const form = document.getElementById('select-050-form');
+        if (form) {
+          form.addEventListener('submit', function () {
+            // After CSV download starts, return to a fresh index page so no
+            // stale special-prefix state remains visible.
+            window.setTimeout(function () {
+              window.location.href = '/';
+            }, 900);
+          });
+        }
       }
 
       document.addEventListener('DOMContentLoaded', initBulk050Controls);
@@ -189,7 +200,7 @@
           rows will be generated until you confirm these choices.
         </p>
 
-        <form method="post">
+        <form id="select-050-form" method="post">
           <input type="hidden" name="confirm_050" value="1">
           <input type="hidden" name="numbers" value="{{ numbers_raw|e }}">
           <input type="hidden" name="operation" value="{{ operation|e }}">

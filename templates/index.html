@@ -184,9 +184,20 @@
 
       document.addEventListener('DOMContentLoaded', function () {
         const opSelect = document.getElementById('operation');
+        const form = document.getElementById('generator-form');
         if (opSelect) {
           opSelect.addEventListener('change', updatePbxVisibility);
           updatePbxVisibility();
+        }
+        if (form) {
+          form.addEventListener('submit', function () {
+            // File responses keep the page alive in many browsers; reset form
+            // shortly after submission so the next generation starts clean.
+            window.setTimeout(function () {
+              form.reset();
+              updatePbxVisibility();
+            }, 900);
+          });
         }
       });
     </script>
@@ -207,7 +218,7 @@
 
       <div class="card">
         <div class="layout">
-          <form method="post">
+          <form id="generator-form" method="post">
             <div>
               <label for="numbers">Phone numbers</label>
               <textarea id="numbers" name="numbers" spellcheck="false" placeholder="Examples:
