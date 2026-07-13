@@ -7,6 +7,16 @@ from typing import Dict, List, Optional, Tuple
 
 from flask import Flask, Response, render_template, request, send_from_directory
 
+from number_splitter import (
+    BulkSplitResult,
+    _collect_delete_items,
+    block_display_notation,
+    build_splitter_zip,
+    calculate_bulk_split,
+    convert_range_wildcards_to_lowercase,
+    default_zip_filename,
+    split_input_lines,
+)
 from pe_processor import get_pe_processor
 
 
@@ -392,6 +402,129 @@ def _build_csv_rows(
     return rows
 
 
+def _validate_splitter_pbx(pbx_id: str) -> Optional[str]:
+    pbx = pbx_id.strip()
+    if len(pbx) != 7 or not pbx.isdigit():
+        return None
+    return pbx
+
+
+def _render_index(
+    active_tab: str = "provisioning",
+    splitter_sources: str = "",
+    splitter_removes: str = "",
+    splitter_pbx_id: str = "",
+    splitter_result: Optional[BulkSplitResult] = None,
+    splitter_error: Optional[str] = None,
+):
+    splitter_add_blocks: List[str] = []
+    splitter_del_blocks: List[str] = []
+
+    if splitter_result:
+        splitter_add_blocks = [
+            block_display_notation(block)
+            for block in splitter_result.resulting_modified_blocks
+        ]
+        splitter_del_blocks = [
+            block_display_notation(block)
+            for block in _collect_delete_items(splitter_result)
+        ]
+
+    return render_template(
+        "index.html",
+        active_tab=active_tab,
+        splitter_sources=splitter_sources,
+        splitter_removes=splitter_removes,
+        splitter_pbx_id=splitter_pbx_id,
+        splitter_result=splitter_result,
+        splitter_add_blocks=splitter_add_blocks,
+        splitter_del_blocks=splitter_del_blocks,
+        splitter_error=splitter_error,
+    )
+
+
+@app.route("/splitter/calculate", methods=["POST"])
+def splitter_calculate():
+    sources_raw = request.form.get("sources", "")
+    removes_raw = request.form.get("removes", "")
+    pbx_raw = request.form.get("splitter_pbx_id", "")
+
+    sources_text = convert_range_wildcards_to_lowercase(sources_raw)
+    removes_text = convert_range_wildcards_to_lowercase(removes_raw)
+    source_lines = split_input_lines(sources_text)
+    remove_lines = split_input_lines(removes_text)
+
+    pbx_id = _validate_splitter_pbx(pbx_raw)
+    if not pbx_id:
+        return _render_index(
+            active_tab="splitter",
+            splitter_sources=sources_raw,
+            splitter_removes=removes_raw,
+            splitter_pbx_id=pbx_raw,
+            splitter_error="Enter a valid 7-digit PBX-ID for CSV export.",
+        )
+
+    if not source_lines and not remove_lines:
+        return _render_index(
+            active_tab="splitter",
+            splitter_sources=sources_raw,
+            splitter_removes=removes_raw,
+            splitter_pbx_id=pbx_id,
+            splitter_error="Enter at least one source block or remove entry.",
+        )
+
+    result = calculate_bulk_split(source_lines, remove_lines)
+
+    return _render_index(
+        active_tab="splitter",
+        splitter_sources=sources_text,
+        splitter_removes=removes_text,
+        splitter_pbx_id=pbx_id,
+        splitter_result=result,
+    )
+
+
+@app.route("/splitter/download", methods=["POST"])
+def splitter_download():
+    sources_raw = request.form.get("sources", "")
+    removes_raw = request.form.get("removes", "")
+    pbx_raw = request.form.get("splitter_pbx_id", "")
+
+    pbx_id = _validate_splitter_pbx(pbx_raw)
+    if not pbx_id:
+        return _render_index(
+            active_tab="splitter",
+            splitter_sources=sources_raw,
+            splitter_removes=removes_raw,
+            splitter_pbx_id=pbx_raw,
+            splitter_error="Enter a valid 7-digit PBX-ID for CSV export.",
+        )
+
+    source_lines = split_input_lines(convert_range_wildcards_to_lowercase(sources_raw))
+    remove_lines = split_input_lines(convert_range_wildcards_to_lowercase(removes_raw))
+
+    result = calculate_bulk_split(source_lines, remove_lines)
+    pe_processor = get_pe_processor()
+    zip_data = build_splitter_zip(result, "pe_code", pe_processor, default_pbx_id=pbx_id)
+
+    if not zip_data:
+        return _render_index(
+            active_tab="splitter",
+            splitter_sources=sources_raw,
+            splitter_removes=removes_raw,
+            splitter_pbx_id=pbx_id,
+            splitter_result=result,
+            splitter_error="No CSV rows could be generated for download. Check PE code resolution.",
+        )
+
+    filename = default_zip_filename()
+    headers = {
+        "Content-Disposition": f'attachment; filename="{filename}"',
+        "Content-Type": "application/zip",
+    }
+    return Response(zip_data, headers=headers)
+
+
 @app.route("/assets/<path:filename>")
 def asset(filename: str):
     """
@@ -406,7 +539,8 @@ def asset(filename: str):
 @app.route("/", methods=["GET", "POST"])
 def index():
     if request.method == "GET":
-        return render_template("index.html")
+        active_tab = "splitter" if request.args.get("tab") == "splitter" else "provisioning"
+        return _render_index(active_tab=active_tab)
 
     # POST: process numbers
     numbers_raw = request.form.get("numbers", "")
