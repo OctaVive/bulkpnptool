@@ -181,10 +181,16 @@ class CsvOutputTests(unittest.TestCase):
         self.assertEqual(parts[4], "1234567")
         self.assertTrue(parts[3])
 
+        del_line = files["del1234567.csv"].splitlines()[0]
+        del_parts = del_line.split(";")
+        self.assertEqual(del_parts[1], "deletePNP")
+        self.assertEqual(del_parts[3], "00")
+
     def test_zip_contains_add_and_del_files(self):
-        zip_data = build_splitter_zip(
-            self.result, "location_id", self.pe_processor, default_pbx_id="1234567"
+        zip_data, filename = build_splitter_zip(
+            self.result, "pe_code", self.pe_processor, default_pbx_id="1234567"
         )
+        self.assertEqual(filename, "add1234567_del1234567.zip")
         with zipfile.ZipFile(io.BytesIO(zip_data), "r") as archive:
             names = set(archive.namelist())
         self.assertIn("add1234567.csv", names)

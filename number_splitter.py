@@ -5,7 +5,6 @@ import io
 import re
 import zipfile
 from dataclasses import dataclass, field
-from datetime import date
 from typing import Dict, List, Literal, Optional, Sequence, Tuple
 
 BlockSize = Literal[1, 10, 100, 1000]
@@ -583,6 +582,17 @@ def _resolve_column_four_for_block(
     return pe_processor.resolve_pe_code(lookup)
 
 
+def _column_four_for_operation(
+    block: FinalTelecomBlock,
+    output_mode: OutputMode,
+    pe_processor,
+    operation: str,
+) -> Optional[str]:
+    if output_mode == "pe_code" and operation == "deletePNP":
+        return "00"
+    return _resolve_column_four_for_block(block, output_mode, pe_processor)
+
+
 def _collect_delete_items(result: BulkSplitResult) -> List[FinalTelecomBlock]:
     items: List[FinalTelecomBlock] = []
     valid_sources = [s for s in result.parsed_sources if s.is_valid]
@@ -643,7 +653,9 @@ def build_splitter_csv_files(
         rows: List[List[str]] = []
         row_number = 1
         for block in blocks:
-            col4 = _resolve_column_four_for_block(block, output_mode, pe_processor)
+            col4 = _column_four_for_operation(
+                block, output_mode, pe_processor, "addPNP"
+            )
             if col4 is None:
                 continue
             notation = format_to_telecom_notation(block.start_number, block.size)
@@ -669,7 +681,9 @@ def build_splitter_csv_files(
         rows = []
         row_number = 1
         for block in blocks:
-            col4 = _resolve_column_four_for_block(block, output_mode, pe_processor)
+            col4 = _column_four_for_operation(
+                block, output_mode, pe_processor, "deletePNP"
+            )
             if col4 is None:
                 continue
             notation = format_to_telecom_notation(block.start_number, block.size)
@@ -697,12 +711,32 @@ def _rows_to_csv(rows: List[List[str]]) -> str:
     return output.getvalue()
 
 
+def build_zip_filename(files: Dict[str, str]) -> str:
+    pbx_ids = sorted(
+        {
+            filename[3:-4]
+            for filename in files
+            if (filename.startswith("add") or filename.startswith("del"))
+            and filename.endswith(".csv")
+        }
+    )
+    parts: List[str] = []
+    for pbx_id in pbx_ids:
+        if f"add{pbx_id}.csv" in files:
+            parts.append(f"add{pbx_id}")
+        if f"del{pbx_id}.csv" in files:
+            parts.append(f"del{pbx_id}")
+    if not parts:
+        return "splitter_export.zip"
+    return "_".join(parts) + ".zip"
+
+
 def build_splitter_zip(
     result: BulkSplitResult,
     output_mode: OutputMode,
     pe_processor,
     default_pbx_id: str = "",
-) -> bytes:
+) -> Tuple[bytes, str]:
     files = build_splitter_csv_files(
         result, output_mode, pe_processor, default_pbx_id=default_pbx_id
     )
@@ -710,8 +744,8 @@ def build_splitter_zip(
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
         for filename, content in files.items():
             archive.writestr(filename, content)
-    return buffer.getvalue()
+    return buffer.getvalue(), build_zip_filename(files)
 
 
-def default_zip_filename() -> str:
-    return f"telecom_mutaties_{date.today().isoformat()}.zip"
+def default_zip_filename(files: Dict[str, str]) -> str:
+    return build_zip_filename(files)

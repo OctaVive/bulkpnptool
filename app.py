@@ -14,7 +14,6 @@ from number_splitter import (
     build_splitter_zip,
     calculate_bulk_split,
     convert_range_wildcards_to_lowercase,
-    default_zip_filename,
     split_input_lines,
 )
 from pe_processor import get_pe_processor
@@ -505,7 +504,9 @@ def splitter_download():
 
     result = calculate_bulk_split(source_lines, remove_lines)
     pe_processor = get_pe_processor()
-    zip_data = build_splitter_zip(result, "pe_code", pe_processor, default_pbx_id=pbx_id)
+    zip_data, filename = build_splitter_zip(
+        result, "pe_code", pe_processor, default_pbx_id=pbx_id
+    )
 
     if not zip_data:
         return _render_index(
@@ -517,7 +518,6 @@ def splitter_download():
             splitter_error="No CSV rows could be generated for download. Check PE code resolution.",
         )
 
-    filename = default_zip_filename()
     headers = {
         "Content-Disposition": f'attachment; filename="{filename}"',
         "Content-Type": "application/zip",
