@@ -11,8 +11,10 @@ from number_splitter import (
     BulkSplitResult,
     _collect_delete_items,
     block_display_notation,
+    build_splitter_raw_text,
     build_splitter_zip,
     calculate_bulk_split,
+    collect_special_add_blocks,
     convert_range_wildcards_to_lowercase,
     split_input_lines,
 )
@@ -408,6 +410,17 @@ def _validate_splitter_pbx(pbx_id: str) -> Optional[str]:
     return pbx
 
 
+def _collect_splitter_pe_overrides() -> Dict[str, str]:
+    overrides: Dict[str, str] = {}
+    for key, value in request.form.items():
+        if not key.startswith("spe_"):
+            continue
+        pe_code = value.strip()
+        if pe_code:
+            overrides[key[len("spe_") :]] = pe_code
+    return overrides
+
+
 def _render_index(
     active_tab: str = "provisioning",
     splitter_sources: str = "",
@@ -415,9 +428,13 @@ def _render_index(
     splitter_pbx_id: str = "",
     splitter_result: Optional[BulkSplitResult] = None,
     splitter_error: Optional[str] = None,
+    splitter_pe_overrides: Optional[Dict[str, str]] = None,
 ):
     splitter_add_blocks: List[str] = []
     splitter_del_blocks: List[str] = []
+    splitter_special_blocks = []
+    splitter_locations_by_prefix: Dict[str, List[Dict[str, str]]] = {}
+    pe_overrides = splitter_pe_overrides or {}
 
     if splitter_result:
         splitter_add_blocks = [
@@ -428,6 +445,11 @@ def _render_index(
             block_display_notation(block)
             for block in _collect_delete_items(splitter_result)
         ]
+        splitter_special_blocks = collect_special_add_blocks(
+            splitter_result, pe_overrides
+        )
+        if splitter_special_blocks:
+            splitter_locations_by_prefix = _load_special_locations_by_prefix()
 
     return render_template(
         "index.html",
@@ -439,6 +461,9 @@ def _render_index(
         splitter_add_blocks=splitter_add_blocks,
         splitter_del_blocks=splitter_del_blocks,
         splitter_error=splitter_error,
+        splitter_special_blocks=splitter_special_blocks,
+        splitter_locations_by_prefix=splitter_locations_by_prefix,
+        splitter_pe_overrides=pe_overrides,
     )
 
 
@@ -483,6 +508,36 @@ def splitter_calculate():
     )
 
 
+@app.route("/splitter/export-text", methods=["POST"])
+def splitter_export_text():
+    sources_raw = request.form.get("sources", "")
+    removes_raw = request.form.get("removes", "")
+    pbx_raw = request.form.get("splitter_pbx_id", "")
+
+    sources_text = convert_range_wildcards_to_lowercase(sources_raw)
+    removes_text = convert_range_wildcards_to_lowercase(removes_raw)
+    source_lines = split_input_lines(sources_text)
+    remove_lines = split_input_lines(removes_text)
+
+    if not source_lines and not remove_lines:
+        return _render_index(
+            active_tab="splitter",
+            splitter_sources=sources_raw,
+            splitter_removes=removes_raw,
+            splitter_pbx_id=pbx_raw,
+            splitter_error="Enter at least one source block or remove entry.",
+        )
+
+    result = calculate_bulk_split(source_lines, remove_lines)
+    text_data = build_splitter_raw_text(result)
+
+    headers = {
+        "Content-Disposition": 'attachment; filename="split_result.txt"',
+        "Content-Type": "text/plain; charset=utf-8",
+    }
+    return Response(text_data, headers=headers)
+
+
 @app.route("/splitter/download", methods=["POST"])
 def splitter_download():
     sources_raw = request.form.get("sources", "")
@@ -503,9 +558,30 @@ def splitter_download():
     remove_lines = split_input_lines(convert_range_wildcards_to_lowercase(removes_raw))
 
     result = calculate_bulk_split(source_lines, remove_lines)
+    pe_overrides = _collect_splitter_pe_overrides()
+
+    missing_special = collect_special_add_blocks(result, pe_overrides)
+    if missing_special:
+        return _render_index(
+            active_tab="splitter",
+            splitter_sources=sources_raw,
+            splitter_removes=removes_raw,
+            splitter_pbx_id=pbx_id,
+            splitter_result=result,
+            splitter_pe_overrides=pe_overrides,
+            splitter_error=(
+                "Select a location (PE code) for each special-prefix block "
+                "(050 / 0521 / 0522 / 0524 / 0527 / 0598 / 0599) before downloading."
+            ),
+        )
+
     pe_processor = get_pe_processor()
     zip_data, filename = build_splitter_zip(
-        result, "pe_code", pe_processor, default_pbx_id=pbx_id
+        result,
+        "pe_code",
+        pe_processor,
+        default_pbx_id=pbx_id,
+        pe_overrides=pe_overrides,
     )
 
     if not zip_data:

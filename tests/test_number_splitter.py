@@ -6,15 +6,20 @@ from number_splitter import (
     _collect_delete_items,
     block_display_notation,
     build_splitter_csv_files,
+    build_splitter_raw_text,
     build_splitter_zip,
     calculate_bulk_split,
+    collect_special_add_blocks,
     convert_range_wildcards_to_lowercase,
     extract_location_id,
     extract_pbx_id,
     format_to_telecom_notation,
+    get_special_prefix,
+    is_special_location_lookup,
     normalize_number,
     parse_block_string,
     reconstruct_line_with_metadata,
+    source_lookup_key,
 )
 from pe_processor import get_pe_processor
 
@@ -113,6 +118,19 @@ class BulkSplitTests(unittest.TestCase):
         ]
         self.assertEqual(delete_items, ["08888450xx"])
 
+    def test_raw_text_export_format(self):
+        sources = ["08888450xx - PBX: 1234567 - Locatie: Utrecht"]
+        removes = ["0888845050"]
+        result = calculate_bulk_split(sources, removes)
+        text = build_splitter_raw_text(result)
+
+        self.assertIn("To be removed", text)
+        self.assertIn("0888845050", text)
+        self.assertIn("Step 1 — Add (retained blocks)", text)
+        self.assertIn("Step 2 — Delete (parent blocks + removes)", text)
+        self.assertIn("08888450xx", text)
+        self.assertIn("088884500x", text)
+
     def test_metadata_inherited_on_retained_blocks(self):
         sources = ["08888450xx - PBX: 1234567 - Locatie: Utrecht"]
         removes = ["0888845050"]
@@ -209,6 +227,43 @@ class CsvOutputTests(unittest.TestCase):
         self.assertIn("add9999999.csv", files)
         self.assertIn("del9999999.csv", files)
 
+    def test_special_prefix_requires_pe_override(self):
+        result = calculate_bulk_split(["05012345xx"], ["0501234501"])
+        special = collect_special_add_blocks(result)
+        self.assertTrue(special)
+        self.assertEqual(special[0].prefix, "050")
+
+        files = build_splitter_csv_files(
+            result, "pe_code", self.pe_processor, default_pbx_id="1234567"
+        )
+        self.assertNotIn("add1234567.csv", files)
+
+    def test_special_prefix_uses_pe_override(self):
+        result = calculate_bulk_split(["05241234xx"], ["0524123401"])
+        source = result.modified_sources[0]
+        key = source_lookup_key(source.start_number, source.size)
+        self.assertEqual(get_special_prefix("0524123400"), "0524")
+
+        files = build_splitter_csv_files(
+            result,
+            "pe_code",
+            self.pe_processor,
+            default_pbx_id="1234567",
+            pe_overrides={key: "03"},
+        )
+        self.assertIn("add1234567.csv", files)
+        add_line = files["add1234567.csv"].splitlines()[0]
+        self.assertIn(";03;", add_line)
+
+    def test_collect_special_blocks_skips_resolved_overrides(self):
+        result = calculate_bulk_split(["05012345xx"], ["0501234501"])
+        source = result.modified_sources[0]
+        key = source_lookup_key(source.start_number, source.size)
+        unresolved = collect_special_add_blocks(result)
+        resolved = collect_special_add_blocks(result, {key: "01"})
+        self.assertEqual(len(unresolved), 1)
+        self.assertEqual(resolved, [])
+
 
 class HelperTests(unittest.TestCase):
     def test_reconstruct_line_with_metadata(self):
@@ -222,6 +277,11 @@ class HelperTests(unittest.TestCase):
     def test_normalize_number(self):
         self.assertEqual(normalize_number("0455688200"), "0455688200")
         self.assertEqual(normalize_number("455688200"), "0455688200")
+
+    def test_is_special_location_lookup(self):
+        self.assertTrue(is_special_location_lookup("0501234567"))
+        self.assertTrue(is_special_location_lookup("0524123400"))
+        self.assertFalse(is_special_location_lookup("0888845000"))
 
 
 if __name__ == "__main__":

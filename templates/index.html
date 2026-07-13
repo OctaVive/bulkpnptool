@@ -127,7 +127,8 @@
       </div>
 
       <div class="button-row">
-        <button class="btn-primary" type="submit">Calculate split</button>
+        <button class="btn-primary" type="submit">Generate NGIN file</button>
+        <button class="btn-secondary" type="submit" formaction="/splitter/export-text" formmethod="post">Export RAW text</button>
       </div>
     </form>
 
@@ -174,18 +175,62 @@
       {% endif %}
     </div>
 
-    <div class="zip-banner">
-      <div>
-        <h3 style="color:#ffffff;margin-bottom:6px;">Download all CSV files as ZIP</h3>
-        <p>Generates all <code>add&lt;PBX-ID&gt;.csv</code> and <code>del&lt;PBX-ID&gt;.csv</code> files in one package.</p>
+    <form method="post" action="/splitter/download" id="splitter-download-form">
+      <textarea name="sources" hidden>{{ splitter_sources }}</textarea>
+      <textarea name="removes" hidden>{{ splitter_removes }}</textarea>
+      <input type="hidden" name="splitter_pbx_id" value="{{ splitter_pbx_id }}">
+
+      {% if splitter_special_blocks %}
+      <div class="result-panel result-panel-special">
+        <h3>Select location for special-prefix blocks</h3>
+        <p>
+          The following ADD blocks use prefixes 050 / 0521 / 0522 / 0524 / 0527 / 0598 / 0599
+          and need a manual PE location before download.
+        </p>
+        <table class="location-table">
+          <thead>
+            <tr>
+              <th>Block</th>
+              <th>Prefix</th>
+              <th>Select location (PE code)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for block in splitter_special_blocks %}
+            {% set locs = splitter_locations_by_prefix.get(block.prefix, []) %}
+            <tr>
+              <td><code>{{ block.notation }}</code></td>
+              <td><code>{{ block.prefix }}</code></td>
+              <td>
+                {% if locs %}
+                <select name="spe_{{ block.lookup_key }}" class="splitter-row-select" required>
+                  <option value="">-- choose location --</option>
+                  {% for loc in locs %}
+                  <option value="{{ loc.pe_code }}"
+                          {% if splitter_pe_overrides.get(block.lookup_key) == loc.pe_code %}selected{% endif %}>
+                    {{ loc.city }} (PE{{ loc.pe_code }})
+                  </option>
+                  {% endfor %}
+                </select>
+                {% else %}
+                <em>No locations configured (data/{{ block.prefix }}_locations.txt)</em>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
-      <form method="post" action="/splitter/download">
-        <textarea name="sources" hidden>{{ splitter_sources }}</textarea>
-        <textarea name="removes" hidden>{{ splitter_removes }}</textarea>
-        <input type="hidden" name="splitter_pbx_id" value="{{ splitter_pbx_id }}">
-        <button class="btn-secondary" type="submit">Download ZIP</button>
-      </form>
-    </div>
+      {% endif %}
+
+      <div class="zip-banner">
+        <div>
+          <h3 style="color:#ffffff;margin-bottom:6px;">Download all CSV files as ZIP</h3>
+          <p>Generates all <code>add&lt;PBX-ID&gt;.csv</code> and <code>del&lt;PBX-ID&gt;.csv</code> files in one package.</p>
+        </div>
+        <button class="btn-primary" type="submit">Download ZIP</button>
+      </div>
+    </form>
     {% endif %}
   </div>
 </div>

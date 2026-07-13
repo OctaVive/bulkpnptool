@@ -12,6 +12,16 @@ OutputMode = Literal["pe_code", "location_id"]
 
 VALID_BLOCK_SIZES: Tuple[int, ...] = (1, 10, 100, 1000)
 
+SPECIAL_LOCATION_PREFIXES: Tuple[str, ...] = (
+    "050",
+    "0521",
+    "0522",
+    "0524",
+    "0527",
+    "0598",
+    "0599",
+)
+
 _METADATA_SPLIT_RE = re.compile(
     r"\s+-\s+(?=PBX:|Locatie:|Location:)",
     re.IGNORECASE,
@@ -48,6 +58,14 @@ class BulkSplitResult:
     resulting_blocks: List[FinalTelecomBlock] = field(default_factory=list)
     modified_sources: List[ParsedBlockInput] = field(default_factory=list)
     resulting_modified_blocks: List[FinalTelecomBlock] = field(default_factory=list)
+
+
+@dataclass
+class SpecialSplitterBlock:
+    notation: str
+    lookup_key: str
+    lookup_national: str
+    prefix: str
 
 
 def split_input_lines(raw: str) -> List[str]:
@@ -379,8 +397,152 @@ def _find_containing_source(
     return None
 
 
+def get_special_prefix(lookup_national: str) -> Optional[str]:
+    for prefix in sorted(SPECIAL_LOCATION_PREFIXES, key=len, reverse=True):
+        if lookup_national.startswith(prefix):
+            return prefix
+    return None
+
+
+def is_special_location_lookup(lookup_national: str) -> bool:
+    return get_special_prefix(lookup_national) is not None
+
+
+def block_lookup_key(block: FinalTelecomBlock) -> str:
+    return f"{block.start_number}_{block.size}"
+
+
+def block_lookup_national(block: FinalTelecomBlock) -> str:
+    return normalize_number(
+        format_to_telecom_notation(block.start_number, block.size)
+    ).replace("x", "0")
+
+
+def source_lookup_key(start_number: str, size: int) -> str:
+    return f"source_{start_number}_{size}"
+
+
+def _source_lookup_national(start_number: str, size: int) -> str:
+    return normalize_number(
+        format_to_telecom_notation(start_number, size)
+    ).replace("x", "0")
+
+
+def _special_sources_for_add(result: BulkSplitResult) -> List[ParsedBlockInput]:
+    modified_keys = {(source.start_number, source.size) for source in result.modified_sources}
+    sources: List[ParsedBlockInput] = list(result.modified_sources)
+
+    for source in result.parsed_sources:
+        if not source.is_valid:
+            continue
+        key = (source.start_number, source.size)
+        if key in modified_keys:
+            continue
+        sources.append(source)
+
+    return sources
+
+
+def _find_containing_special_source_key(
+    block: FinalTelecomBlock,
+    result: BulkSplitResult,
+) -> Optional[str]:
+    block_start = int(block.start_number)
+    block_end = block_start + block.size - 1
+    best: Optional[Tuple[int, str]] = None
+
+    for source in _special_sources_for_add(result):
+        lookup = _source_lookup_national(source.start_number, source.size)
+        if not is_special_location_lookup(lookup):
+            continue
+
+        src_start = int(source.start_number)
+        src_end = src_start + source.size - 1
+        if src_start <= block_start and block_end <= src_end:
+            key = source_lookup_key(source.start_number, source.size)
+            if best is None or source.size < best[0]:
+                best = (source.size, key)
+
+    return best[1] if best else None
+
+
+def collect_special_add_blocks(
+    result: BulkSplitResult,
+    pe_overrides: Optional[Dict[str, str]] = None,
+) -> List[SpecialSplitterBlock]:
+    overrides = pe_overrides or {}
+    items: List[SpecialSplitterBlock] = []
+    seen: set[str] = set()
+
+    for source in _special_sources_for_add(result):
+        lookup = _source_lookup_national(source.start_number, source.size)
+        if not is_special_location_lookup(lookup):
+            continue
+
+        key = source_lookup_key(source.start_number, source.size)
+        if key in seen:
+            continue
+        if overrides.get(key):
+            continue
+
+        prefix = get_special_prefix(lookup)
+        if not prefix:
+            continue
+
+        seen.add(key)
+        items.append(
+            SpecialSplitterBlock(
+                notation=format_to_telecom_notation(source.start_number, source.size),
+                lookup_key=key,
+                lookup_national=lookup,
+                prefix=prefix,
+            )
+        )
+    return items
+
+
 def block_display_notation(block: FinalTelecomBlock) -> str:
     return format_to_telecom_notation(block.start_number, block.size)
+
+
+def build_splitter_raw_text(result: BulkSplitResult) -> str:
+    remove_blocks = [
+        format_to_telecom_notation(item.start_number, item.size)
+        if item.is_valid
+        else item.raw
+        for item in result.parsed_removes
+    ]
+    add_blocks = [
+        block_display_notation(block)
+        for block in result.resulting_modified_blocks
+    ]
+    del_blocks = [
+        block_display_notation(block)
+        for block in _collect_delete_items(result)
+    ]
+
+    lines = [
+        "To be removed",
+        "",
+    ]
+    lines.extend(remove_blocks if remove_blocks else ["(none)"])
+    lines.extend(
+        [
+            "",
+            "Step 1 — Add (retained blocks)",
+            "",
+        ]
+    )
+    lines.extend(add_blocks if add_blocks else ["(none)"])
+    lines.extend(
+        [
+            "",
+            "Step 2 — Delete (parent blocks + removes)",
+            "",
+        ]
+    )
+    lines.extend(del_blocks if del_blocks else ["(none)"])
+    return "\n".join(lines) + "\n"
 
 
 def _block_from_parsed(parsed: ParsedBlockInput, metadata_source: ParsedBlockInput) -> FinalTelecomBlock:
@@ -564,6 +726,8 @@ def _resolve_column_four_for_block(
     block: FinalTelecomBlock,
     output_mode: OutputMode,
     pe_processor,
+    pe_overrides: Optional[Dict[str, str]] = None,
+    result: Optional[BulkSplitResult] = None,
 ) -> Optional[str]:
     if output_mode == "location_id":
         for text in (block.source_metadata, block.formatted):
@@ -572,12 +736,15 @@ def _resolve_column_four_for_block(
                 return loc
         return None
 
-    lookup = normalize_number(
-        format_to_telecom_notation(block.start_number, block.size)
-    ).replace("x", "0")
+    lookup = block_lookup_national(block)
+    overrides = pe_overrides or {}
 
-    if lookup.startswith("050"):
-        return None
+    if is_special_location_lookup(lookup):
+        if result is not None:
+            source_key = _find_containing_special_source_key(block, result)
+            if source_key:
+                return overrides.get(source_key)
+        return overrides.get(block_lookup_key(block))
 
     return pe_processor.resolve_pe_code(lookup)
 
@@ -587,10 +754,18 @@ def _column_four_for_operation(
     output_mode: OutputMode,
     pe_processor,
     operation: str,
+    pe_overrides: Optional[Dict[str, str]] = None,
+    result: Optional[BulkSplitResult] = None,
 ) -> Optional[str]:
     if output_mode == "pe_code" and operation == "deletePNP":
         return "00"
-    return _resolve_column_four_for_block(block, output_mode, pe_processor)
+    return _resolve_column_four_for_block(
+        block,
+        output_mode,
+        pe_processor,
+        pe_overrides=pe_overrides,
+        result=result,
+    )
 
 
 def _collect_delete_items(result: BulkSplitResult) -> List[FinalTelecomBlock]:
@@ -641,6 +816,7 @@ def build_splitter_csv_files(
     output_mode: OutputMode,
     pe_processor,
     default_pbx_id: str = "",
+    pe_overrides: Optional[Dict[str, str]] = None,
 ) -> Dict[str, str]:
     files: Dict[str, str] = {}
 
@@ -654,7 +830,12 @@ def build_splitter_csv_files(
         row_number = 1
         for block in blocks:
             col4 = _column_four_for_operation(
-                block, output_mode, pe_processor, "addPNP"
+                block,
+                output_mode,
+                pe_processor,
+                "addPNP",
+                pe_overrides=pe_overrides,
+                result=result,
             )
             if col4 is None:
                 continue
@@ -682,7 +863,12 @@ def build_splitter_csv_files(
         row_number = 1
         for block in blocks:
             col4 = _column_four_for_operation(
-                block, output_mode, pe_processor, "deletePNP"
+                block,
+                output_mode,
+                pe_processor,
+                "deletePNP",
+                pe_overrides=pe_overrides,
+                result=result,
             )
             if col4 is None:
                 continue
@@ -736,9 +922,14 @@ def build_splitter_zip(
     output_mode: OutputMode,
     pe_processor,
     default_pbx_id: str = "",
+    pe_overrides: Optional[Dict[str, str]] = None,
 ) -> Tuple[bytes, str]:
     files = build_splitter_csv_files(
-        result, output_mode, pe_processor, default_pbx_id=default_pbx_id
+        result,
+        output_mode,
+        pe_processor,
+        default_pbx_id=default_pbx_id,
+        pe_overrides=pe_overrides,
     )
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
