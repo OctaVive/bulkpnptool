@@ -231,12 +231,6 @@ def _block_type_for_value(block_value: str) -> str:
     wildcard_count = block_value.count("x")
     if wildcard_count == 0:
         return "Single number"
-    if wildcard_count == 1:
-        return "10 numbers"
-    if wildcard_count == 2:
-        return "100 numbers"
-    if wildcard_count == 3:
-        return "1000 numbers"
     return f"{10 ** wildcard_count} numbers"
 
 

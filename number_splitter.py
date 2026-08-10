@@ -2,15 +2,16 @@ from __future__ import annotations
 
 import csv
 import io
+import math
 import re
 import zipfile
 from dataclasses import dataclass, field
 from typing import Dict, List, Literal, Optional, Sequence, Tuple
 
-BlockSize = Literal[1, 10, 100, 1000]
+BlockSize = Literal[1, 10, 100, 1000, 10000]
 OutputMode = Literal["pe_code", "location_id"]
 
-VALID_BLOCK_SIZES: Tuple[int, ...] = (1, 10, 100, 1000)
+VALID_BLOCK_SIZES: Tuple[int, ...] = (1, 10, 100, 1000, 10000)
 
 SPECIAL_LOCATION_PREFIXES: Tuple[str, ...] = (
     "050",
@@ -170,14 +171,11 @@ def is_valid_block_alignment(normalized: str, size: BlockSize) -> bool:
     if not digits.isdigit() or len(digits) != 10:
         return False
 
-    suffix = digits[-3:] if size == 1000 else digits[-2:] if size == 100 else digits[-1:] if size == 10 else ""
-    if size == 1000:
-        return digits.endswith("000")
-    if size == 100:
-        return digits.endswith("00")
-    if size == 10:
-        return digits.endswith("0")
-    return True
+    if size == 1:
+        return True
+
+    trailing_zeros = int(math.log10(size))
+    return digits.endswith("0" * trailing_zeros)
 
 
 def format_to_telecom_notation(start_number: str, size: BlockSize) -> str:
@@ -186,13 +184,11 @@ def format_to_telecom_notation(start_number: str, size: BlockSize) -> str:
         start = start.zfill(10)
     start = start[:10]
 
-    if size == 1000:
-        return start[:7] + "xxx"
-    if size == 100:
-        return start[:8] + "xx"
-    if size == 10:
-        return start[:9] + "x"
-    return start
+    if size == 1:
+        return start
+
+    wildcard_count = int(math.log10(size))
+    return start[: 10 - wildcard_count] + ("x" * wildcard_count)
 
 
 def _split_number_and_metadata(line: str) -> Tuple[str, str]:
@@ -240,11 +236,14 @@ def _parse_wildcard_token(token: str) -> Tuple[Optional[str], BlockSize, Optiona
         return None, 1, "No wildcard markers found"
 
     wildcard_count = normalized.count("x")
-    if wildcard_count not in (1, 2, 3):
-        return None, 1, "Wildcard count must be 1, 2, or 3"
+    if wildcard_count not in (1, 2, 3, 4):
+        return None, 1, "Wildcard count must be 1, 2, 3, or 4"
 
-    size_map = {1: 10, 2: 100, 3: 1000}
-    size: BlockSize = size_map[wildcard_count]  # type: ignore[assignment]
+    size = 10**wildcard_count
+    if size not in VALID_BLOCK_SIZES:
+        return None, 1, f"Block size {size} is not supported"
+
+    size_typed: BlockSize = size  # type: ignore[assignment]
 
     if not normalized.endswith("x" * wildcard_count):
         return None, 1, "Wildcards must be trailing"
@@ -253,10 +252,10 @@ def _parse_wildcard_token(token: str) -> Tuple[Optional[str], BlockSize, Optiona
     if len(start) != 10:
         return None, 1, "Wildcard block must resolve to 10 digits"
 
-    if not is_valid_block_alignment(start, size):
-        return None, 1, f"Block is not aligned for size {size}"
+    if not is_valid_block_alignment(start, size_typed):
+        return None, 1, f"Block is not aligned for size {size_typed}"
 
-    return start, size, None
+    return start, size_typed, None
 
 
 def parse_block_string(line: str) -> ParsedBlockInput:

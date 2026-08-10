@@ -87,6 +87,33 @@ class ParseBlockStringTests(unittest.TestCase):
             "08888450xx - PBX: 1",
         )
 
+    def test_wildcard_10000_block(self):
+        parsed = parse_block_string("088884xxxx")
+        self.assertTrue(parsed.is_valid)
+        self.assertEqual(parsed.start_number, "0888840000")
+        self.assertEqual(parsed.size, 10000)
+
+    def test_wildcard_10000_block_local_format(self):
+        parsed = parse_block_string("88884xxxx")
+        self.assertTrue(parsed.is_valid)
+        self.assertEqual(parsed.start_number, "0888840000")
+        self.assertEqual(parsed.size, 10000)
+
+    def test_format_10000_block_notation(self):
+        self.assertEqual(
+            format_to_telecom_notation("0888840000", 10000),
+            "088884xxxx",
+        )
+
+    def test_split_10000_block(self):
+        result = calculate_bulk_split(["088884xxxx"], ["0888845000"])
+        delete_items = [
+            format_to_telecom_notation(b.start_number, b.size)
+            for b in _collect_delete_items(result)
+        ]
+        self.assertEqual(delete_items, ["088884xxxx"])
+        self.assertNotIn("0888845000", delete_items)
+
 
 class BulkSplitTests(unittest.TestCase):
     def test_manual_example(self):
