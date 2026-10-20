@@ -68,6 +68,10 @@
         color: #e60000;
         border-bottom-color: #e60000;
       }
+      .tab-btn[data-tab="configuration"] {
+        font-size: 1.15rem;
+        font-weight: 700;
+      }
       .tab-panel {
         display: none;
       }
