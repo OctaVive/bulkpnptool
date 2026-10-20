@@ -1,0 +1,44 @@
+Alteveer Gn;01
+Barnflair;01
+Borger;03
+Bourtange;01
+Bronneger;03
+Bronnegerveen;03
+Buinen;03
+Buinerveen;03
+Drouwen;03
+Drouwenermond;01
+Drouwenerveen;03
+Eerste Exloermond;03
+Ees;03
+Eesergroen;03
+Eeserveen;03
+Eeserveen Borger;03
+Eeserveen Odoorn;03
+Ellertshaar;03
+Exloërveen;03
+Gasselte;03
+Gasselterboerveen;03
+Gasselternijveen;03
+Gasselternijveenschemond;01
+Gieterveen;03
+Jipsingboermussel;01
+Jipsingboertange;01
+Jipsinghuizen;01
+Munnekemoer;01
+Mussel;01
+Musselkanaal;01
+Nieuw Buinen;01
+Onstwedde;01
+Rhederveld Gem Vlagtwedde;01
+Sellingen;01
+Stadskanaal;01
+Ter Apel;01
+Ter Apelkanaal;01
+Tweede Exloërmond;03
+Eerste Valthermond;03
+Valthermond;03
+Vlagtwedde;01
+Vledderveen Gn;01
+Westdorp;03
+Zandberg Dr;01

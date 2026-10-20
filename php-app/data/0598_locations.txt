@@ -1,0 +1,39 @@
+T Waar;01
+Annerveensche Kanaal;03
+Bareveld;03
+Borgercompagnie;01
+Eexterveen;03
+Eexterveensche Kanaal;03
+Eexterzandvoort;03
+Foxham;01
+Foxhol;01
+Froombosch;01
+Hellum;01
+Hoogezand;01
+Kiel Windeweer;03
+Kolham;01
+Kropswolde;01
+Luddeweer;01
+Martenshoek;01
+Meeden;01
+Menterwolde Gem Bestuur;01
+Muntendam;01
+Nieuw Annerveen;03
+Nieuw Scheemda;01
+Nieuwediep;03
+Noordbroek;01
+Oosterbroek Gem Bestuur;01
+Oud Annerveen;03
+Sappemeer;01
+Schildwolde;01
+Siddeburen;01
+Slochteren;01
+Spijkerboor Dr;03
+Steendam;01
+Tripscompagnie;01
+Veendam;01
+Wildervank;01
+Wildervanksterdallen;01
+Woudbloem;01
+Zuidbroek;01
+Zuidlaarderveen;03

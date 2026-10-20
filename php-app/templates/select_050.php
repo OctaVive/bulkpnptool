@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Select Locations for Special Prefixes</title>
+    <style>
+      body {
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        margin: 0;
+        padding: 0;
+        background: #ffffff;
+        color: #000000;
+      }
+      .container {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 32px 16px 48px;
+      }
+      h1 {
+        font-size: 1.6rem;
+        margin-bottom: 0.5rem;
+      }
+      p {
+        color: #111827;
+        line-height: 1.5;
+      }
+      .card {
+        background: #ffffff;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+        border: 1px solid #e5e7eb;
+        margin-top: 24px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 16px;
+      }
+      th, td {
+        padding: 8px 6px;
+        text-align: left;
+        font-size: 0.9rem;
+      }
+      th {
+        border-bottom: 1px solid #e5e7eb;
+        color: #4b5563;
+        font-weight: 600;
+      }
+      tr:nth-child(even) td {
+        background: #f9fafb;
+      }
+      select {
+        width: 100%;
+        box-sizing: border-box;
+        border-radius: 8px;
+        border: 1px solid #d1d5db;
+        padding: 6px 8px;
+        font-size: 0.9rem;
+        background: #ffffff;
+        color: #111827;
+        outline: none;
+      }
+      select:focus {
+        border-color: #e60000;
+        box-shadow: 0 0 0 1px rgba(230, 0, 0, 0.25);
+      }
+      label {
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #4b5563;
+        display: block;
+        margin-bottom: 6px;
+      }
+      .btn-primary {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px 18px;
+        border-radius: 999px;
+        border: none;
+        background: #e60000;
+        color: #ffffff;
+        font-weight: 600;
+        font-size: 0.95rem;
+        letter-spacing: 0.02em;
+        cursor: pointer;
+        margin-top: 20px;
+        box-shadow: 0 10px 25px rgba(230, 0, 0, 0.35);
+        transition: transform 0.1s ease, box-shadow 0.1s ease, filter 0.1s ease;
+      }
+      .btn-primary:hover {
+        filter: brightness(1.05);
+        transform: translateY(-1px);
+        box-shadow: 0 14px 35px rgba(230, 0, 0, 0.45);
+      }
+      .btn-primary:active {
+        transform: translateY(0);
+        box-shadow: 0 8px 18px rgba(0, 0, 0, 0.2);
+      }
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        font-size: 0.85em;
+        background: #f3f4f6;
+        padding: 2px 5px;
+        border-radius: 4px;
+        border: 1px solid #e5e7eb;
+      }
+      .bulk-controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+        margin-top: 16px;
+        font-size: 0.85rem;
+        color: #4b5563;
+      }
+      .bulk-controls select {
+        width: auto;
+        min-width: 220px;
+      }
+      .bulk-label-strong {
+        font-weight: 600;
+        color: #111827;
+      }
+    </style>
+    <script>
+      function initBulk050Controls() {
+        const checkAll = document.getElementById('check_all_050');
+        const bulkSelect = document.getElementById('bulk_location');
+        const applyBtn = document.getElementById('apply_bulk_location');
+
+        const rowChecks = Array.from(document.querySelectorAll('.row-check-050'));
+        const rowSelects = Array.from(document.querySelectorAll('.row-select-050'));
+
+        if (checkAll) {
+          checkAll.addEventListener('change', function () {
+            rowChecks.forEach(cb => {
+              cb.checked = checkAll.checked;
+            });
+          });
+        }
+
+        if (applyBtn && bulkSelect) {
+          applyBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            const selectedIndex = bulkSelect.selectedIndex;
+            if (selectedIndex <= 0) {
+              return;
+            }
+            const bulkOption = bulkSelect.options[selectedIndex];
+            const bulkCity = bulkOption.getAttribute('data-city');
+            const bulkPe = bulkOption.getAttribute('data-pe');
+            if (!bulkCity || !bulkPe) {
+              return;
+            }
+
+            rowChecks.forEach((cb, idx) => {
+              const selectEl = rowSelects[idx];
+              if (!cb.checked || !selectEl) {
+                return;
+              }
+              const options = Array.from(selectEl.options);
+              const match = options.find(function (opt) {
+                return opt.getAttribute('data-city') === bulkCity &&
+                       opt.getAttribute('data-pe') === bulkPe;
+              });
+              if (match) {
+                match.selected = true;
+              }
+            });
+          });
+        }
+
+        const form = document.getElementById('select-050-form');
+        if (form) {
+          form.addEventListener('submit', function () {
+            // After CSV download starts, return to a fresh index page so no
+            // stale special-prefix state remains visible.
+            window.setTimeout(function () {
+              window.location.href = '/';
+            }, 900);
+          });
+        }
+      }
+
+      document.addEventListener('DOMContentLoaded', initBulk050Controls);
+    </script>
+  </head>
+  <body>
+    <div class="container">
+      <div class="card">
+        <h1>Select PE location for special prefixes</h1>
+        <p>
+          The following numbers are ambiguous (050 / 0521 / 0522 / 0524 / 0527 / 0598 / 0599)
+          and cannot be resolved automatically.
+          Please select the correct location (and PE code) for each number. No provisioning
+          rows will be generated until you confirm these choices.
+        </p>
+
+        <form id="select-050-form" method="post">
+          <input type="hidden" name="confirm_050" value="1">
+          <input type="hidden" name="numbers" value="<?= e($numbers_raw) ?>">
+          <input type="hidden" name="operation" value="<?= e($operation) ?>">
+          <input type="hidden" name="pbx_id_from" value="<?= e($pbx_id_from) ?>">
+          <input type="hidden" name="pbx_id_to" value="<?= e($pbx_id_to) ?>">
+
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 40px; text-align: center;">
+                  <input type="checkbox" id="check_all_050">
+                </th>
+                <th>Special number</th>
+                <th>Select location (PE code)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php foreach ($numbers_050 as $item): ?>
+              <tr>
+                <td style="text-align: center;">
+                  <input type="checkbox" class="row-check-050">
+                </td>
+                <td>
+                  <code><?= e($item['raw_input']) ?></code>
+                </td>
+                <td>
+                  <?php $prefix = null; ?>
+                  <?php if (str_starts_with($item['lookup_national'], '0599')): ?>
+                    <?php $prefix = '0599'; ?>
+                  <?php elseif (str_starts_with($item['lookup_national'], '0598')): ?>
+                    <?php $prefix = '0598'; ?>
+                  <?php elseif (str_starts_with($item['lookup_national'], '0527')): ?>
+                    <?php $prefix = '0527'; ?>
+                  <?php elseif (str_starts_with($item['lookup_national'], '0524')): ?>
+                    <?php $prefix = '0524'; ?>
+                  <?php elseif (str_starts_with($item['lookup_national'], '0522')): ?>
+                    <?php $prefix = '0522'; ?>
+                  <?php elseif (str_starts_with($item['lookup_national'], '0521')): ?>
+                    <?php $prefix = '0521'; ?>
+                  <?php elseif (str_starts_with($item['lookup_national'], '050')): ?>
+                    <?php $prefix = '050'; ?>
+                  <?php endif; ?>
+
+                  <?php $locs = []; ?>
+                  <?php if (($prefix && array_key_exists($prefix, $locations_by_prefix))): ?>
+                    <?php $locs = $locations_by_prefix[$prefix]; ?>
+                  <?php endif; ?>
+
+                  <?php if ($locs): ?>
+                    <select name="pe_<?= e($item['lookup_national']) ?>" class="row-select-050">
+                      <?php foreach ($locs as $loc): ?>
+                        <option value="<?= e($loc['pe_code']) ?>" data-city="<?= e($loc['city']) ?>" data-pe="<?= e($loc['pe_code']) ?>">
+                          <?= e($loc['city']) ?> (PE<?= e($loc['pe_code']) ?>)
+                        </option>
+                      <?php endforeach; ?>
+                    </select>
+                  <?php else: ?>
+                    <em>No locations configured (data/<?= e($prefix) ?>_locations.txt)</em>
+                  <?php endif; ?>
+                </td>
+              </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+
+          <?php if ($bulk_locations): ?>
+          <div class="bulk-controls">
+            <span class="bulk-label-strong">Assign same location to selected numbers:</span>
+            <select id="bulk_location">
+              <option value="">-- choose location --</option>
+              <?php foreach ($bulk_locations as $loc): ?>
+              <option value="<?= e($loc['pe_code']) ?>" data-city="<?= e($loc['city']) ?>" data-pe="<?= e($loc['pe_code']) ?>">
+                <?= e($loc['city']) ?> (PE<?= e($loc['pe_code']) ?>)
+              </option>
+              <?php endforeach; ?>
+            </select>
+            <button id="apply_bulk_location" class="btn-primary" type="button">
+              Apply to selected
+            </button>
+          </div>
+          <?php endif; ?>
+
+          <button type="submit" class="btn-primary">
+            Continue and generate CSV
+          </button>
+        </form>
+      </div>
+    </div>
+  </body>
+  </html>
+
