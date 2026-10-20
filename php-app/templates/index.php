@@ -405,7 +405,9 @@
       <nav class="tab-bar" role="tablist">
         <button type="button" class="tab-btn<?php if ($active_tab === 'provisioning'): ?> active<?php endif; ?>" data-tab="provisioning" role="tab">PNP Provisioning</button>
         <button type="button" class="tab-btn<?php if ($active_tab === 'splitter'): ?> active<?php endif; ?>" data-tab="splitter" role="tab">Number Splitter</button>
+        <?php /* Experimental Configuration tab: hidden until ready.
         <button type="button" class="tab-btn<?php if ($active_tab === 'configuration'): ?> active<?php endif; ?>" data-tab="configuration" role="tab">Configuration</button>
+        */ ?>
       </nav>
 
       
