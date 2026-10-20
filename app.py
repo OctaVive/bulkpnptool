@@ -609,7 +609,9 @@ def asset(filename: str):
 @app.route("/", methods=["GET", "POST"])
 def index():
     if request.method == "GET":
-        active_tab = "splitter" if request.args.get("tab") == "splitter" else "provisioning"
+        active_tab = request.args.get("tab", "provisioning")
+        if active_tab not in {"provisioning", "splitter", "configuration"}:
+            active_tab = "provisioning"
         return _render_index(active_tab=active_tab)
 
     # POST: process numbers
@@ -618,6 +620,27 @@ def index():
     pbx_id_from = request.form.get("pbx_id_from", "")
     pbx_id_to = request.form.get("pbx_id_to", "")
     output_format = request.form.get("output_format", "csv").lower()
+
+    required_pbx_ids = []
+    if operation.upper() in {"DELETE", "MOVE"}:
+        required_pbx_ids.append(("Delete from PBX-ID", pbx_id_from))
+    if operation.upper() in {"ADD", "MOVE"}:
+        required_pbx_ids.append(("Add to PBX-ID", pbx_id_to))
+    for field_name, pbx_id in required_pbx_ids:
+        value = pbx_id.strip()
+        if len(value) < 7 or not value.isascii() or not value.isdigit():
+            return render_template(
+                "index.html",
+                active_tab="provisioning",
+                provisioning_error=f"{field_name} must contain at least 7 digits (numbers only).",
+            ), 400
+
+    if operation.upper() == "MOVE" and pbx_id_from.strip() == pbx_id_to.strip():
+        return render_template(
+            "index.html",
+            active_tab="provisioning",
+            provisioning_error="You cannot move to the same PBX-ID",
+        ), 400
 
     # XLSX mode bypasses PE resolution entirely and only exports normalized
     # block descriptors, so it can be generated immediately.

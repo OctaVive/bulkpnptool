@@ -29,7 +29,31 @@
       updatePbxVisibility();
     }
     if (form) {
-      form.addEventListener('submit', function () {
+      form.addEventListener('submit', function (event) {
+        const fromPbx = document.getElementById('pbx_id_from');
+        const toPbx = document.getElementById('pbx_id_to');
+        const error = document.getElementById('provisioning-error');
+        const requiredFields = opSelect.value === 'MOVE' ? [fromPbx, toPbx]
+          : opSelect.value === 'DELETE' ? [fromPbx] : [toPbx];
+        const invalidField = requiredFields.find(function (field) {
+          return !/^[0-9]{7,}$/.test(field.value.trim());
+        });
+        if (invalidField) {
+          event.preventDefault();
+          const fieldName = invalidField === fromPbx ? 'Delete from PBX-ID' : 'Add to PBX-ID';
+          error.textContent = fieldName + ' must contain at least 7 digits (numbers only).';
+          error.classList.remove('hidden');
+          invalidField.focus();
+          return;
+        }
+        if (opSelect.value === 'MOVE' && fromPbx.value.trim() === toPbx.value.trim()) {
+          event.preventDefault();
+          error.textContent = 'You cannot move to the same PBX-ID';
+          error.classList.remove('hidden');
+          toPbx.focus();
+          return;
+        }
+        error.classList.add('hidden');
         window.setTimeout(function () {
           form.reset();
           updatePbxVisibility();
@@ -44,13 +68,14 @@
 <div class="tab-panel{% if active_tab == 'provisioning' %} active{% endif %}" data-tab-panel="provisioning">
   <div class="card">
     <form id="generator-form" method="post" action="/">
+      <div id="provisioning-error" class="result-panel result-panel-warn{% if not provisioning_error %} hidden{% endif %}" role="alert">{{ provisioning_error|default('') }}</div>
       <div>
         <label for="numbers">Phone numbers</label>
         <textarea id="numbers" name="numbers" spellcheck="false" placeholder="Examples:
 455688200
 0455688200
 +31455688200
-45568820X"></textarea>
+45568820X">{{ request.form.get('numbers', '') }}</textarea>
         <div class="helper-text">
           One number or number block per line. Wildcards like <code>45568820X</code> are supported and are <strong>not</strong> expanded in the CSV.
         </div>
@@ -60,18 +85,18 @@
         <div class="col col-1-3">
           <label for="operation">Operation</label>
           <select id="operation" name="operation">
-            <option value="ADD">ADD → addPNP</option>
-            <option value="DELETE">DELETE → deletePNP</option>
-            <option value="MOVE">MOVE → deletePNP + addPNP</option>
+            <option value="ADD"{% if request.form.get('operation', 'ADD') == 'ADD' %} selected{% endif %}>ADD → addPNP</option>
+            <option value="DELETE"{% if request.form.get('operation') == 'DELETE' %} selected{% endif %}>DELETE → deletePNP</option>
+            <option value="MOVE"{% if request.form.get('operation') == 'MOVE' %} selected{% endif %}>MOVE → deletePNP + addPNP</option>
           </select>
         </div>
         <div class="col pbx-from-group">
           <label for="pbx_id_from">Delete from PBX-ID</label>
-          <input id="pbx_id_from" name="pbx_id_from" type="text" placeholder="e.g. 1000001">
+          <input id="pbx_id_from" name="pbx_id_from" type="text" placeholder="e.g. 1000001" value="{{ request.form.get('pbx_id_from', '') }}">
         </div>
         <div class="col pbx-to-group">
           <label for="pbx_id_to">Add to PBX-ID</label>
-          <input id="pbx_id_to" name="pbx_id_to" type="text" placeholder="e.g. 1000002">
+          <input id="pbx_id_to" name="pbx_id_to" type="text" placeholder="e.g. 1000002" value="{{ request.form.get('pbx_id_to', '') }}">
         </div>
       </div>
 
@@ -232,6 +257,11 @@
       </div>
     </form>
     {% endif %}
+  </div>
+</div>
+<div class="tab-panel{% if active_tab == 'configuration' %} active{% endif %}" data-tab-panel="configuration">
+  <div class="card">
+    <p>Coming soon</p>
   </div>
 </div>
 {% endblock %}

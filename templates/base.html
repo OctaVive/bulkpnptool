@@ -343,6 +343,7 @@
       <nav class="tab-bar" role="tablist">
         <button type="button" class="tab-btn{% if active_tab == 'provisioning' %} active{% endif %}" data-tab="provisioning" role="tab">Provisioning</button>
         <button type="button" class="tab-btn{% if active_tab == 'splitter' %} active{% endif %}" data-tab="splitter" role="tab">Number Splitter</button>
+        <button type="button" class="tab-btn{% if active_tab == 'configuration' %} active{% endif %}" data-tab="configuration" role="tab">Configuration</button>
       </nav>
 
       {% block content %}{% endblock %}
@@ -357,8 +358,8 @@
           panel.classList.toggle('active', panel.getAttribute('data-tab-panel') === tabName);
         });
         var url = new URL(window.location.href);
-        if (tabName === 'splitter') {
-          url.searchParams.set('tab', 'splitter');
+        if (tabName === 'splitter' || tabName === 'configuration') {
+          url.searchParams.set('tab', tabName);
         } else {
           url.searchParams.delete('tab');
         }
