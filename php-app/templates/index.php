@@ -68,10 +68,6 @@
         color: #e60000;
         border-bottom-color: #e60000;
       }
-      .tab-btn[data-tab="configuration"] {
-        font-size: 1.15rem;
-        font-weight: 700;
-      }
       .tab-panel {
         display: none;
       }
@@ -407,7 +403,7 @@
       </header>
 
       <nav class="tab-bar" role="tablist">
-        <button type="button" class="tab-btn<?php if ($active_tab === 'provisioning'): ?> active<?php endif; ?>" data-tab="provisioning" role="tab">Provisioning</button>
+        <button type="button" class="tab-btn<?php if ($active_tab === 'provisioning'): ?> active<?php endif; ?>" data-tab="provisioning" role="tab">PNP Provisioning</button>
         <button type="button" class="tab-btn<?php if ($active_tab === 'splitter'): ?> active<?php endif; ?>" data-tab="splitter" role="tab">Number Splitter</button>
         <button type="button" class="tab-btn<?php if ($active_tab === 'configuration'): ?> active<?php endif; ?>" data-tab="configuration" role="tab">Configuration</button>
       </nav>
@@ -609,7 +605,39 @@
 </div>
 <div class="tab-panel<?php if ($active_tab === 'configuration'): ?> active<?php endif; ?>" data-tab-panel="configuration">
   <div class="card">
-    <p>Coming soon</p>
+    <div class="row">
+      <div class="col">
+        <label for="configuration_vpn_id">VPN-ID</label>
+        <input id="configuration_vpn_id" name="configuration_vpn_id" type="text">
+      </div>
+    </div>
+    <div class="row">
+      <div class="col">
+        <label for="configuration_pbx_id">PBX-ID</label>
+        <input id="configuration_pbx_id" name="configuration_pbx_id" type="text">
+      </div>
+    </div>
+    <div class="row">
+      <div class="col">
+        <label for="configuration_trunk_group">trunk-group</label>
+        <input id="configuration_trunk_group" name="configuration_trunk_group" type="text">
+      </div>
+    </div>
+    <div class="row">
+      <div class="col">
+        <label for="configuration_trunk_context">trunk context</label>
+        <input id="configuration_trunk_context" name="configuration_trunk_context" type="text">
+      </div>
+    </div>
+    <div class="row">
+      <div class="col">
+        <label for="configuration_testnumber">testnumber</label>
+        <input id="configuration_testnumber" name="configuration_testnumber" type="text">
+      </div>
+    </div>
+    <div class="button-row">
+      <button class="btn-primary" type="button">Save</button>
+    </div>
   </div>
 </div>
 

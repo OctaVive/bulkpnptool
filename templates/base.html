@@ -68,10 +68,6 @@
         color: #e60000;
         border-bottom-color: #e60000;
       }
-      .tab-btn[data-tab="configuration"] {
-        font-size: 1.15rem;
-        font-weight: 700;
-      }
       .tab-panel {
         display: none;
       }
@@ -345,7 +341,7 @@
       </header>
 
       <nav class="tab-bar" role="tablist">
-        <button type="button" class="tab-btn{% if active_tab == 'provisioning' %} active{% endif %}" data-tab="provisioning" role="tab">Provisioning</button>
+        <button type="button" class="tab-btn{% if active_tab == 'provisioning' %} active{% endif %}" data-tab="provisioning" role="tab">PNP Provisioning</button>
         <button type="button" class="tab-btn{% if active_tab == 'splitter' %} active{% endif %}" data-tab="splitter" role="tab">Number Splitter</button>
         <button type="button" class="tab-btn{% if active_tab == 'configuration' %} active{% endif %}" data-tab="configuration" role="tab">Configuration</button>
       </nav>
